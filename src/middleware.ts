@@ -6,6 +6,23 @@ export default withAuth(
     const token = req.nextauth.token
     const pathname = req.nextUrl.pathname
 
+    // Catch NextAuth error redirects that may miss the basePath
+    if (pathname === '/api/auth/error') {
+      const basePath = process.env.BASE_PATH || ''
+      if (basePath) {
+        return NextResponse.redirect(new URL(`${basePath}/api/auth/error`, req.url))
+      }
+    }
+
+    // Allow all auth routes, rates-proxy, and uploads to pass through
+    if (
+      pathname.startsWith('/api/auth/') ||
+      pathname.startsWith('/api/rates-proxy') ||
+      pathname.startsWith('/uploads')
+    ) {
+      return NextResponse.next()
+    }
+
     if (pathname === '/login' || pathname === '/register' || pathname.startsWith('/invite')) {
       if (token && pathname !== '/invite') return NextResponse.redirect(new URL('/', req.url))
       return NextResponse.next()
@@ -23,7 +40,15 @@ export default withAuth(
     callbacks: {
       authorized: ({ req, token }) => {
         const pathname = req.nextUrl.pathname
-        if (pathname === '/' || pathname === '/login' || pathname === '/register' || pathname.startsWith('/invite')) return true
+        if (
+          pathname === '/' ||
+          pathname === '/login' ||
+          pathname === '/register' ||
+          pathname.startsWith('/invite') ||
+          pathname.startsWith('/api/auth/') ||
+          pathname.startsWith('/api/rates-proxy') ||
+          pathname.startsWith('/uploads')
+        ) return true
         return !!token
       },
     },
@@ -31,5 +56,5 @@ export default withAuth(
 )
 
 export const config = {
-  matcher: ['/((?!api/auth|api/rates-proxy|_next/static|_next/image|favicon.ico|uploads).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 }

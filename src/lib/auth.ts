@@ -5,6 +5,9 @@ import jwt from 'jsonwebtoken'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from './prisma'
 
+const bp = process.env.BASE_PATH || ''
+const cookiePath = `${bp}/api/auth`
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
   providers: [
@@ -15,6 +18,35 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: 'jwt',
+  },
+  cookies: {
+    state: {
+      name: 'next-auth.state',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: cookiePath,
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
+    pkceCodeVerifier: {
+      name: 'next-auth.pkce.code_verifier',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: cookiePath,
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
+    nonce: {
+      name: 'next-auth.nonce',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: cookiePath,
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
   },
   pages: {
     signIn: '/login',

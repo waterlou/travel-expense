@@ -1,75 +1,84 @@
-# Adding Apple Sign-In
+# Apple Sign-In Setup
 
 ## Prerequisites
 
 - An active [Apple Developer Program](https://developer.apple.com/programs/) membership ($99/year)
-- Your app's bundle identifier (e.g., `com.travelexpense.app`)
+- The app's bundle/Service ID (e.g., `com.travelexpense.web`)
 
-## Steps
+## Step-by-step
 
-### 1. Configure App ID in Apple Developer Portal
+### 1. Create a Service ID
 
 1. Go to [developer.apple.com](https://developer.apple.com) → Certificates, Identifiers & Profiles
-2. Identifiers → Register a new identifier → App IDs
-3. Enable **Sign in with Apple** capability
-4. Note your **Service ID** (for web auth) or configure for native app
+2. Click **Identifiers** → **+** → **Services IDs**
+3. Enter a description and identifier (e.g., `com.travelexpense.web`)
+4. Click **Continue** → **Register**
 
-### 2. Create a Service ID (for Web)
+### 2. Enable Sign in with Apple for the Service ID
 
-1. Identifiers → Register → Services IDs
-2. Create a Service ID (e.g., `com.travelexpense.web`)
-3. Configure Sign in with Apple for this Service ID
-4. Add the domain where your app is hosted
-5. Add the return URL: `https://yourdomain.com/api/auth/callback/apple`
+1. Find your Service ID in the identifiers list
+2. Click it → check **Sign in with Apple** → **Configure**
+3. Select the **Primary App ID** (any existing app, or create a new App ID)
+4. Under **Return URLs**, add: `https://yourdomain.com/api/auth/callback/apple`
+   - For local dev: `http://localhost:3000/api/auth/callback/apple`
+5. Click **Save**
 
 ### 3. Generate a Private Key
 
-1. Keys → Register a new key
-2. Enable **Sign in with Apple**
-3. Configure with the Service ID from step 2
-4. Download the `.p8` key file (one-time download!)
-5. Note the **Key ID**
+1. Go to **Keys** → **+** (or [developer.apple.com/account/resources/authkeys](https://developer.apple.com/account/resources/authkeys))
+2. Check **Sign in with Apple**
+3. Click **Configure** and select the Service ID from step 1
+4. Click **Continue** → **Register**
+5. **Download the `.p8` key file** (one-time download — keep it safe!)
+6. Note the **Key ID** (displayed on the key details page)
 
-### 4. Add Environment Variables
+### 4. Get Your Team ID
+
+1. Go to [developer.apple.com/account](https://developer.apple.com/account)
+2. Your **Team ID** is shown under **Membership** or in the top-right corner
+
+### 5. Extract the Private Key
+
+The downloaded `.p8` file looks like:
+
+```
+-----BEGIN PRIVATE KEY-----
+MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQg...
+-----END PRIVATE KEY-----
+```
+
+For the `.env` file, replace newlines with `\n`:
+
+```bash
+# Read your .p8 file and format for .env
+awk 'NF {printf "%s\\n", $0}' /path/to/AuthKey_XXXXXXXXXX.p8
+```
+
+### 6. Add Environment Variables
 
 Add to your `.env` file:
 
 ```bash
-APPLE_ID=your-service-id (e.g., com.travelexpense.web)
-APPLE_TEAM_ID=your-team-id (from developer.apple.com)
-APPLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
-APPLE_KEY_ID=the-key-id-from-step-3
+APPLE_CLIENT_ID=com.travelexpense.web
+APPLE_TEAM_ID=ABC123DEFG
+APPLE_KEY_ID=XXXXXXXXXX
+APPLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQg...\n-----END PRIVATE KEY-----"
 ```
 
-### 5. Update Auth Configuration
-
-In `src/lib/auth.ts`, add the Apple provider:
-
-```typescript
-import AppleProvider from 'next-auth/providers/apple'
-
-// Add to providers array:
-AppleProvider({
-  clientId: process.env.APPLE_ID!,
-  clientSecret: {
-    teamId: process.env.APPLE_TEAM_ID!,
-    privateKey: process.env.APPLE_PRIVATE_KEY!,
-    keyId: process.env.APPLE_KEY_ID!,
-  },
-}),
-```
-
-### 6. Rebuild and Deploy
+### 7. Build and Test
 
 ```bash
 npm run build
-# or
-docker compose build
-docker compose up -d
+npm run dev
 ```
 
-## Testing
+Visit `/login` and click **Sign in with Apple**. You should be redirected to Apple's sign-in page and back to the app after authenticating.
 
-- Sign out and verify the "Sign in with Apple" button appears
-- Complete the Apple auth flow
-- Verify the user is redirected back correctly
+## Troubleshooting
+
+| Issue | Fix |
+|---|---|
+| `redirect_uri` mismatch | Ensure the Return URL in Apple Developer portal matches `NEXTAUTH_URL/api/auth/callback/apple` |
+| Invalid client secret | Check that `APPLE_TEAM_ID`, `APPLE_KEY_ID`, and `APPLE_PRIVATE_KEY` are correct |
+| "Invalid ID" error | The Service ID must match `APPLE_CLIENT_ID` |
+| Error during dev on localhost | Apple requires HTTPS for production, but `http://localhost` is allowed |

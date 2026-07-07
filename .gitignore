@@ -1,0 +1,11 @@
+node_modules/
+.next/
+out/
+data/
+prisma/data/
+public/uploads/*
+!public/uploads/.gitkeep
+.env
+.env.local
+*.db
+*.db-journal

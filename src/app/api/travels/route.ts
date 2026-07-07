@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { uniqueSlug } from '@/lib/utils'
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -32,16 +33,16 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { name, prefix, mainCurrency, currencies, startDate, endDate, expensePermission, members } = body
+    const { name, mainCurrency, currencies, startDate, endDate, expensePermission, members } = body
 
-    if (!name?.trim() || !prefix?.trim()) {
-      return NextResponse.json({ error: 'Name and prefix are required' }, { status: 400 })
+    if (!name?.trim()) {
+      return NextResponse.json({ error: 'Name is required' }, { status: 400 })
     }
 
-    const existing = await prisma.travel.findUnique({ where: { prefix } })
-    if (existing) {
-      return NextResponse.json({ error: 'Prefix already taken' }, { status: 400 })
-    }
+    const prefix = await uniqueSlug(name, async (slug) => {
+      const existing = await prisma.travel.findUnique({ where: { prefix: slug } })
+      return !!existing
+    })
 
     if (currencies && currencies.length > 10) {
       return NextResponse.json({ error: 'Maximum 10 additional currencies' }, { status: 400 })
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
         name,
         prefix,
         mainCurrency: mainCurrency || 'USD',
-        currencies: JSON.stringify(currencies || []),
+        currencies: JSON.stringify((currencies || []).filter((c: string) => c !== mainCurrency)),
         startDate: startDate || null,
         endDate: endDate || null,
         expensePermission: expensePermission || 1,

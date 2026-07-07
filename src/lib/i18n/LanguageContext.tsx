@@ -19,6 +19,7 @@ function detectLocale(): Locale {
   if (lang.startsWith('ja')) return 'ja'
   if (lang.startsWith('es')) return 'es'
   if (lang.startsWith('de')) return 'de'
+  if (lang.startsWith('fr')) return 'fr'
   return 'en'
 }
 

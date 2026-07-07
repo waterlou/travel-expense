@@ -14,7 +14,7 @@ import { useT } from '@/lib/i18n/LanguageContext'
 export default function BalancePage() {
   const params = useParams()
   const router = useRouter()
-  const { t } = useT()
+  const { t, locale } = useT()
   const prefix = params?.prefix as string
   const [travel, setTravel] = useState<any>(null)
   const [expenses, setExpenses] = useState<any[]>([])
@@ -213,7 +213,7 @@ export default function BalancePage() {
           <Typography variant="h5">{t('balance.title')}</Typography>
           <Button size="small" variant="outlined" startIcon={<PictureAsPdf />} onClick={async () => {
             const { exportPdf } = await import('@/lib/exportPdf')
-            await exportPdf(travel, expenses, groups, rates, groupMode)
+            await exportPdf(travel, expenses, groups, rates, groupMode, t, locale)
           }}>
             {t('balance.exportPdf')}
           </Button>

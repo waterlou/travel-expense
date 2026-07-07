@@ -32,6 +32,18 @@ echo ""
 BASE="http://localhost:3333"
 PREFIX="test-ui-$$"
 
+# Reset locale and theme
+browser-harness-js "
+const tabs = await listPageTargets();
+const tab = tabs.find(t => t.url && t.url.includes('localhost:3333'));
+if (!tab) return 'NO_TAB';
+await session.use(tab.targetId);
+await session.Runtime.evaluate({ expression: 'localStorage.setItem(\"locale\", \"en\"); localStorage.setItem(\"theme-mode\", \"light\")' });
+await session.Page.reload();
+await new Promise(r => setTimeout(r, 1500));
+return 'RESET'
+" 2>/dev/null > /dev/null
+
 # ─── Home Page ───
 echo "── Home Page ──"
 nav "/"

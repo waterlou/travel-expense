@@ -11,6 +11,16 @@ export function slugify(text: string): string {
     .replace(/(^-|-$)/g, '')
 }
 
+export async function uniqueSlug(base: string, checkExists: (slug: string) => Promise<boolean>): Promise<string> {
+  let slug = slugify(base) || 'travel'
+  let suffix = 0
+  while (await checkExists(slug)) {
+    suffix++
+    slug = `${slugify(base)}-${suffix}`
+  }
+  return slug
+}
+
 export function formatCurrency(amount: number, currency: string): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',

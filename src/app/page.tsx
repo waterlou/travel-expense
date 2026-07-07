@@ -34,7 +34,7 @@ function HomePage() {
   const [joinDialog, setJoinDialog] = useState(false)
   const [joinCode, setJoinCode] = useState('')
   const [form, setForm] = useState<any>({
-    name: '', prefix: '', mainCurrency: 'USD',
+    name: '', mainCurrency: 'USD',
     startDate: null, endDate: null, permissions: 1,
     members: [{ name: '', isAdmin: true }],
   })
@@ -177,7 +177,7 @@ function CreateTravelDialog({
   const [currencySearch, setCurrencySearch] = useState('')
 
   async function handleCreate() {
-    if (!form.name.trim() || !form.prefix.trim()) {
+    if (!form.name.trim()) {
       setError(t('travel.nameRequired'))
       return
     }
@@ -213,9 +213,6 @@ function CreateTravelDialog({
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
           <TextField label={t('travel.travelName')} fullWidth value={form.name}
             onChange={e => setForm({ ...form, name: e.target.value })} />
-          <TextField label={t('travel.urlPrefix')} fullWidth value={form.prefix}
-            onChange={e => setForm({ ...form, prefix: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
-            helperText={t('travel.urlPrefixHelp')} />
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <DatePicker

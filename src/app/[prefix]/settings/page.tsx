@@ -26,7 +26,7 @@ export default function SettingsPage() {
   const [deleteOpen, setDeleteOpen] = useState(false)
 
   const [form, setForm] = useState({
-    name: '', prefix: '', mainCurrency: 'USD',
+    name: '', mainCurrency: 'USD',
     startDate: '', endDate: '', expensePermission: 1,
   })
   const [selectedCurrencies, setSelectedCurrencies] = useState<string[]>([])
@@ -41,7 +41,6 @@ export default function SettingsPage() {
         const t = data.travel
         setForm({
           name: t.name,
-          prefix: t.prefix,
           mainCurrency: t.mainCurrency,
           startDate: t.startDate || '',
           endDate: t.endDate || '',
@@ -107,10 +106,6 @@ export default function SettingsPage() {
                 onChange={e => setForm({ ...form, name: e.target.value })} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField label={t('travel.urlPrefix')} fullWidth value={form.prefix}
-                onChange={e => setForm({ ...form, prefix: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })} />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField label={t('travel.startDate')} type="date" fullWidth value={form.startDate}
                 onChange={e => setForm({ ...form, startDate: e.target.value })}
                 InputLabelProps={{ shrink: true }} />
@@ -122,7 +117,11 @@ export default function SettingsPage() {
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField label={t('travel.mainCurrency')} fullWidth value={form.mainCurrency}
-                onChange={e => setForm({ ...form, mainCurrency: e.target.value.toUpperCase() })} />
+                onChange={e => {
+                  const v = e.target.value.toUpperCase()
+                  setForm({ ...form, mainCurrency: v })
+                  setSelectedCurrencies(prev => prev.filter(c => c !== v))
+                }} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth>

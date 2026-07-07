@@ -8,6 +8,10 @@ import { prisma } from './prisma'
 const bp = process.env.BASE_PATH || ''
 const cookiePath = `${bp}/api/auth`
 
+function pb(path: string) {
+  return bp ? `${bp}${path}` : path
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
   providers: [
@@ -49,8 +53,8 @@ export const authOptions: NextAuthOptions = {
     },
   },
   pages: {
-    signIn: '/login',
-    error: '/api/auth/error',
+    signIn: pb('/login'),
+    error: pb('/api/auth/error'),
   },
   callbacks: {
     async jwt({ token, user }) {

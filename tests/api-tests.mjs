@@ -13,7 +13,7 @@ const testExpenseIds = []
 async function getSessionCookie() {
   const { execSync } = await import('child_process')
   const out = execSync(
-    `browser-harness-js 'const cookies = await session.Network.getCookies({ urls: ["${BASE}"] }); const c = cookies.cookies.find(c => c.name.includes("next-auth")); return c ? c.name + "=" + c.value : ""'`,
+    `browser-harness-js 'const cookies = await session.Network.getCookies({ urls: ["${BASE}"] }); const c = cookies.cookies.find(c => c.name.includes("next-auth.session-token")); return c ? c.name + "=" + c.value : ""'`,
     { encoding: 'utf8', timeout: 10000 }
   ).trim()
   if (!out) throw new Error('No session cookie found. Make sure you are logged into the app in Chrome.')
@@ -68,10 +68,8 @@ const testAuthWithCookie = test('authenticated request succeeds', async () => {
 
 const testCreateTravel = test('create travel with members', async () => {
   const ts = Date.now()
-  const prefix = `test-${ts}`
   const { status, data } = await api('POST', '/api/travels', {
     name: `Test Trip ${ts}`,
-    prefix,
     mainCurrency: 'USD',
     currencies: ['EUR', 'GBP'],
     startDate: '2026-07-01',
@@ -84,13 +82,13 @@ const testCreateTravel = test('create travel with members', async () => {
     ],
   })
   assert(status === 201, `Expected 201, got ${status}`)
-  assert(data.travel?.prefix === prefix, `Prefix mismatch`)
+  assert(data.travel?.prefix?.startsWith('test-trip-'), `Expected slug to start with test-trip-`)
   assert(data.travel?.members?.length === 3, `Expected 3 members, got ${data.travel?.members?.length}`)
   const withUser = data.travel.members.filter(m => m.userId)
   const withoutUser = data.travel.members.filter(m => !m.userId)
   assert(withUser.length === 1, `Expected 1 claimed member, got ${withUser.length}`)
   assert(withoutUser.length === 2, `Expected 2 unclaimed members, got ${withoutUser.length}`)
-  testTravelPrefix = prefix
+  testTravelPrefix = data.travel.prefix
 })
 
 const testGetTravel = test('get travel by prefix', async () => {
@@ -108,24 +106,22 @@ const testListTravels = test('list user travels', async () => {
 })
 
 const testUpdateTravel = test('update travel settings', async () => {
-  const { status } = await api('PUT', `/api/travels/${testTravelPrefix}`, {
+  const { status, data } = await api('PUT', `/api/travels/${testTravelPrefix}`, {
     name: 'Updated Test Trip',
-    prefix: testTravelPrefix,
     mainCurrency: 'EUR',
     expensePermission: 4,
   })
   assert(status === 200, `Expected 200, got ${status}`)
-  const { data: d2 } = await api('GET', `/api/travels/${testTravelPrefix}`)
+  const newPrefix = data.travel?.prefix
+  const { data: d2 } = await api('GET', `/api/travels/${newPrefix}`)
   assert(d2.travel?.mainCurrency === 'EUR', `Currency not updated`)
   assert(d2.travel?.expensePermission === 4, `Permission not updated`)
+  testTravelPrefix = newPrefix
 })
 
 const testCreateTravelNoMembers = test('create travel without extra members', async () => {
-  const ts = Date.now()
-  const prefix = `test-solo-${ts}`
   const { status, data } = await api('POST', '/api/travels', {
     name: 'Solo Trip',
-    prefix,
     mainCurrency: 'USD',
     members: [{ name: 'Alice', isAdmin: true }],
   })

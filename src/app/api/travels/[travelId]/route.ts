@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { uniqueSlug } from '@/lib/utils'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ travelId: string }> }) {
   const session = await getServerSession(authOptions)
@@ -48,13 +49,22 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ trav
 
   try {
     const body = await req.json()
+    const slug = body.name
+      ? await uniqueSlug(body.name, async (s) => {
+          const existing = await prisma.travel.findFirst({ where: { prefix: s, id: { not: travel.id } } })
+          return !!existing
+        })
+      : travel.prefix
+
     const updated = await prisma.travel.update({
       where: { id: travel.id },
       data: {
         name: body.name,
-        prefix: body.prefix,
+        prefix: slug,
         mainCurrency: body.mainCurrency,
-        currencies: body.currencies ? JSON.stringify(body.currencies) : undefined,
+        currencies: body.currencies
+          ? JSON.stringify(body.currencies.filter((c: string) => c !== body.mainCurrency))
+          : undefined,
         startDate: body.startDate || null,
         endDate: body.endDate || null,
         expensePermission: body.expensePermission,

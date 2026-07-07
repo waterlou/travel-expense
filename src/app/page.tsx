@@ -373,8 +373,9 @@ function JoinDialog({ open, onClose, onJoined, setError }: any) {
 }
 
 export default function Page() {
+  const bp = typeof process !== 'undefined' ? process.env.BASE_PATH : ''
   return (
-    <SessionProvider>
+    <SessionProvider basePath={bp ? `${bp}/api/auth` : undefined}>
       <HomePage />
     </SessionProvider>
   )

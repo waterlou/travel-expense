@@ -102,8 +102,9 @@ function InviteContent() {
 }
 
 export default function Page() {
+  const bp = typeof process !== 'undefined' ? process.env.BASE_PATH : ''
   return (
-    <SessionProvider>
+    <SessionProvider basePath={bp ? `${bp}/api/auth` : undefined}>
       <Suspense fallback={<Box textAlign="center" py={8}><CircularProgress /></Box>}>
         <InviteContent />
       </Suspense>

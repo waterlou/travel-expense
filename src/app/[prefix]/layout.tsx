@@ -186,8 +186,9 @@ function TravelLayout({ children }: { children: React.ReactNode }) {
 }
 
 export default function Layout({ children }: { children: React.ReactNode }) {
+  const bp = typeof process !== 'undefined' ? process.env.BASE_PATH : ''
   return (
-    <SessionProvider>
+    <SessionProvider basePath={bp ? `${bp}/api/auth` : undefined}>
       <TravelLayout>{children}</TravelLayout>
     </SessionProvider>
   )

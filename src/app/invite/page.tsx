@@ -3,7 +3,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useSession, signIn } from 'next-auth/react'
 import { Container, Box, Typography, Button, Card, CardContent, CircularProgress, Alert } from '@mui/material'
-import { TravelExplore, Google } from '@mui/icons-material'
+import { TravelExplore, Google, Apple } from '@mui/icons-material'
 import { SessionProvider } from 'next-auth/react'
 import { useT } from '@/lib/i18n/LanguageContext'
 
@@ -65,10 +65,16 @@ function InviteContent() {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                   {t('invite.signInToJoin')}
                 </Typography>
-                <Button variant="contained" startIcon={<Google />}
-                  onClick={() => signIn('google', { callbackUrl: `/invite?code=${code}` })}>
-                  {t('auth.signInGoogle')}
-                </Button>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Button variant="contained" startIcon={<Google />}
+                    onClick={() => signIn('google', { callbackUrl: `/invite?code=${code}` })}>
+                    {t('auth.signInGoogle')}
+                  </Button>
+                  <Button variant="outlined" startIcon={<Apple />}
+                    onClick={() => signIn('apple', { callbackUrl: `/invite?code=${code}` })}>
+                    {t('auth.signInApple')}
+                  </Button>
+                </Box>
               </Box>
             )}
 

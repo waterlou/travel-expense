@@ -13,8 +13,8 @@ const testExpenseIds = []
 async function getSessionCookie() {
   const { execSync } = await import('child_process')
   const out = execSync(
-    `browser-harness-js 'const cookies = await session.Network.getCookies({ urls: ["${BASE}"] }); const c = cookies.cookies.find(c => c.name.includes("next-auth.session-token")); return c ? c.name + "=" + c.value : ""'`,
-    { encoding: 'utf8', timeout: 10000 }
+    `browser-harness-js 'const tabs = await listPageTargets(); const tab = tabs[0]; await session.use(tab.targetId); await session.Network.enable(); const cookies = await session.Network.getCookies({urls:["http://localhost:3333"]}); const c = cookies.cookies?.find(c => c.name.includes("next-auth.session-token")); return c ? c.name + "=" + c.value : ""'`,
+    { encoding: 'utf8', timeout: 15000 }
   ).trim()
   if (!out) throw new Error('No session cookie found. Make sure you are logged into the app in Chrome.')
   cookie = out

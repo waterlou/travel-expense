@@ -17,7 +17,7 @@ import {
   TextField, Chip, CircularProgress, Alert,
 } from '@mui/material'
 import {
-  Add, Logout, TravelExplore, Google,
+  Add, Logout, TravelExplore, Google, Apple,
   ChevronRight, Menu as MenuIcon,
   DarkMode, LightMode,
 } from '@mui/icons-material'
@@ -70,8 +70,11 @@ function HomePage() {
           <Toolbar>
             <TravelExplore sx={{ mr: 1 }} />
             <Typography variant="h6" sx={{ flexGrow: 1 }}>TravelExpense</Typography>
-            <Button color="inherit" onClick={() => signIn('google')}>
-              <Google sx={{ mr: 1 }} /> {t('auth.signInGoogle')}
+            <Button color="inherit" onClick={() => signIn('google')} sx={{ mr: 1 }}>
+              <Google sx={{ mr: 0.5 }} /> {t('auth.signInGoogle')}
+            </Button>
+            <Button color="inherit" onClick={() => signIn('apple')}>
+              <Apple sx={{ mr: 0.5 }} /> {t('auth.signInApple')}
             </Button>
           </Toolbar>
         </AppBar>
@@ -81,9 +84,14 @@ function HomePage() {
           <Typography variant="h6" color="text.secondary" sx={{ mb: 4 }}>
             Track shared expenses for your trips. Split bills, manage currencies, and settle up easily.
           </Typography>
-          <Button variant="contained" size="large" onClick={() => signIn('google')} startIcon={<Google />}>
-            {t('auth.signInGoogle')}
-          </Button>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, alignItems: 'center' }}>
+            <Button variant="contained" size="large" onClick={() => signIn('google')} startIcon={<Google />} sx={{ minWidth: 280 }}>
+              {t('auth.signInGoogle')}
+            </Button>
+            <Button variant="outlined" size="large" onClick={() => signIn('apple')} startIcon={<Apple />} sx={{ minWidth: 280 }}>
+              {t('auth.signInApple')}
+            </Button>
+          </Box>
         </Container>
       </Box>
     )

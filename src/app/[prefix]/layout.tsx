@@ -16,15 +16,7 @@ import {
 } from '@mui/icons-material'
 import { signOut } from 'next-auth/react'
 import { useThemeMode } from '@/lib/ThemeContext'
-
-const navItems = [
-  { label: 'Dashboard', icon: <Dashboard />, path: '' },
-  { label: 'Expenses', icon: <Receipt />, path: '/expenses' },
-  { label: 'Members', icon: <People />, path: '/members' },
-
-  { label: 'Balance', icon: <AccountBalance />, path: '/balance' },
-  { label: 'Settings', icon: <Settings />, path: '/settings' },
-]
+import { useT } from '@/lib/i18n/LanguageContext'
 
 function TravelLayout({ children }: { children: React.ReactNode }) {
   const params = useParams()
@@ -36,7 +28,16 @@ function TravelLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const { mode, toggleTheme } = useThemeMode()
+  const { t } = useT()
   const prefix = params?.prefix as string
+
+  const navItems = [
+    { label: t('nav.dashboard'), icon: <Dashboard />, path: '' },
+    { label: t('nav.expenses'), icon: <Receipt />, path: '/expenses' },
+    { label: t('nav.members'), icon: <People />, path: '/members' },
+    { label: t('nav.balance'), icon: <AccountBalance />, path: '/balance' },
+    { label: t('nav.settings'), icon: <Settings />, path: '/settings' },
+  ]
 
   useEffect(() => {
     if (!prefix) return
@@ -70,7 +71,7 @@ function TravelLayout({ children }: { children: React.ReactNode }) {
         <ListItem disablePadding>
           <ListItemButton onClick={() => { router.push('/'); setMobileOpen(false) }}>
             <ListItemIcon><Home /></ListItemIcon>
-            <ListItemText primary="All Travels" />
+            <ListItemText primary={t('nav.allTravels')} />
           </ListItemButton>
         </ListItem>
         <Divider sx={{ my: 0.5 }} />
@@ -100,7 +101,7 @@ function TravelLayout({ children }: { children: React.ReactNode }) {
   if (!travel) {
     return (
       <Box textAlign="center" py={8}>
-        <Typography variant="h5" color="text.secondary">Travel not found</Typography>
+        <Typography variant="h5" color="text.secondary">{t('error.notFound')}</Typography>
       </Box>
     )
   }
@@ -133,7 +134,7 @@ function TravelLayout({ children }: { children: React.ReactNode }) {
             </MenuItem>
             <Divider />
             <MenuItem onClick={() => signOut({ callbackUrl: '/' })}>
-              <Logout sx={{ mr: 1 }} /> Sign Out
+              <Logout sx={{ mr: 1 }} /> {t('nav.signOut')}
             </MenuItem>
           </Menu>
         </Toolbar>

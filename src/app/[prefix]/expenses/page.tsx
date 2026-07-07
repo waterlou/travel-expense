@@ -9,11 +9,13 @@ import {
   Fab, ImageList, ImageListItem, Select, MenuItem, FormControl, InputLabel,
 } from '@mui/material'
 import { Add, Edit, Delete, Image } from '@mui/icons-material'
+import { useT } from '@/lib/i18n/LanguageContext'
 
 export default function ExpensesPage() {
   const params = useParams()
   const router = useRouter()
   const { data: session } = useSession()
+  const { t } = useT()
   const prefix = params?.prefix as string
   const [travel, setTravel] = useState<any>(null)
   const [expenses, setExpenses] = useState<any[]>([])
@@ -51,7 +53,7 @@ export default function ExpensesPage() {
   }
 
   if (loading) return <Box textAlign="center" py={4}><CircularProgress /></Box>
-  if (!travel) return <Typography>Not found</Typography>
+  if (!travel) return <Typography>{t('common.notFound')}</Typography>
 
   const currentUser = travel.members?.find((m: any) => m.userId === (session?.user as any)?.id)
   const isAdmin = currentUser?.isAdmin
@@ -65,17 +67,17 @@ export default function ExpensesPage() {
   const currencies = [travel.mainCurrency, ...(JSON.parse(travel.currencies || '[]'))]
 
   function getPayersInfo(exp: any, members: any[]) {
-    const primaryPayer = exp.paidBy?.name || 'Unknown'
+    const primaryPayer = exp.paidBy?.name || t('misc.unknown')
     const extraPayers = (() => {
       try { return JSON.parse(exp.extraPayers || '[]') }
       catch { return [] }
     })()
-    if (extraPayers.length === 0) return `${primaryPayer} paid`
+    if (extraPayers.length === 0) return `${primaryPayer} ${t('misc.paid')}`
     const extraNames = extraPayers.map((ep: any) => {
       const m = members?.find((mm: any) => mm.id === ep.memberId)
-      return m?.name || 'Unknown'
+      return m?.name || t('misc.unknown')
     })
-    return `${primaryPayer} + ${extraNames.join(', ')} paid`
+    return `${primaryPayer} + ${extraNames.join(', ')} ${t('misc.paid')}`
   }
 
   function calcSplitAmount(exp: any, split: any, memberCount: number) {
@@ -110,25 +112,25 @@ export default function ExpensesPage() {
   return (
     <Container maxWidth="lg" sx={{ mt: 3, mb: 3 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} flexWrap="wrap" gap={1}>
-        <Typography variant="h5">Expenses</Typography>
+        <Typography variant="h5">{t('nav.expenses')}</Typography>
         <Box display="flex" gap={1} flexWrap="wrap">
           <FormControl size="small" sx={{ minWidth: 100 }}>
-            <InputLabel>Currency</InputLabel>
-            <Select value={currencyFilter} label="Currency" onChange={e => setCurrencyFilter(e.target.value)}>
-              <MenuItem value="all">All</MenuItem>
+            <InputLabel>{t('expense.filterCurrency')}</InputLabel>
+            <Select value={currencyFilter} label={t('expense.filterCurrency')} onChange={e => setCurrencyFilter(e.target.value)}>
+              <MenuItem value="all">{t('expense.all')}</MenuItem>
               {currencies.map((c: string) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
             </Select>
           </FormControl>
           <FormControl size="small" sx={{ minWidth: 120 }}>
-            <InputLabel>Status</InputLabel>
-            <Select value={confirmedFilter} label="Status" onChange={e => setConfirmedFilter(e.target.value)}>
-              <MenuItem value="all">All</MenuItem>
-              <MenuItem value="confirmed">Confirmed</MenuItem>
-              <MenuItem value="unconfirmed">Unconfirmed</MenuItem>
+            <InputLabel>{t('expense.filterStatus')}</InputLabel>
+            <Select value={confirmedFilter} label={t('expense.filterStatus')} onChange={e => setConfirmedFilter(e.target.value)}>
+              <MenuItem value="all">{t('expense.all')}</MenuItem>
+              <MenuItem value="confirmed">{t('expense.statusConfirmed')}</MenuItem>
+              <MenuItem value="unconfirmed">{t('expense.statusUnconfirmed')}</MenuItem>
             </Select>
           </FormControl>
           <Button variant="contained" startIcon={<Add />} onClick={() => router.push(`/${prefix}/expenses/new`)}>
-            Add Expense
+            {t('expense.addExpense')}
           </Button>
         </Box>
       </Box>
@@ -136,7 +138,7 @@ export default function ExpensesPage() {
       {filtered.length === 0 ? (
         <Card>
           <CardContent sx={{ textAlign: 'center', py: 4 }}>
-            <Typography color="text.secondary">No expenses found</Typography>
+            <Typography color="text.secondary">{t('expense.noExpenses')}</Typography>
           </CardContent>
         </Card>
       ) : (
@@ -157,8 +159,8 @@ export default function ExpensesPage() {
                       <ListItemText
                         primary={
                           <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
-                            <Typography>{exp.description || 'No description'}</Typography>
-                            {!exp.confirmed && <Chip label="Unconfirmed" size="small" color="warning" variant="outlined" />}
+                            <Typography>{exp.description || t('misc.noDescription')}</Typography>
+                            {!exp.confirmed && <Chip label={t('expense.statusUnconfirmed')} size="small" color="warning" variant="outlined" />}
                             {exp.imageUrl && <Image fontSize="small" color="action" />}
                           </Box>
                         }
@@ -224,9 +226,9 @@ export default function ExpensesPage() {
       </Fab>
 
       <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
-        <DialogTitle>Delete Expense?</DialogTitle>
+        <DialogTitle>{t('expense.deleteConfirm')}</DialogTitle>
         <DialogContent>
-          <Typography>Are you sure you want to delete this expense?</Typography>
+          <Typography>{t('expense.deleteConfirm')}</Typography>
           {deleteTarget && (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
               {deleteTarget.description} — {deleteTarget.amount?.toFixed(2)} {deleteTarget.currency}
@@ -234,8 +236,8 @@ export default function ExpensesPage() {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
-          <Button color="error" variant="contained" onClick={() => handleDelete(deleteTarget.id)}>Delete</Button>
+          <Button onClick={() => setDeleteTarget(null)}>{t('common.cancel')}</Button>
+          <Button color="error" variant="contained" onClick={() => handleDelete(deleteTarget.id)}>{t('common.delete')}</Button>
         </DialogActions>
       </Dialog>
     </Container>

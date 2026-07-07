@@ -10,11 +10,13 @@ import {
   DialogContent, DialogActions,
 } from '@mui/material'
 import { ArrowBack } from '@mui/icons-material'
+import { useT } from '@/lib/i18n/LanguageContext'
 
 export default function SettingsPage() {
   const params = useParams()
   const router = useRouter()
   const { data: session } = useSession()
+  const { t, locale, setLocale, LOCALE_LABELS } = useT()
   const prefix = params?.prefix as string
   const [travel, setTravel] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -67,7 +69,7 @@ export default function SettingsPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to update')
-      setSuccess('Settings updated')
+      setSuccess(t('settings.saved'))
     } catch (e: any) {
       setError(e.message)
     } finally {
@@ -84,13 +86,13 @@ export default function SettingsPage() {
   const isAdmin = currentUser?.isAdmin
 
   if (loading) return <Box textAlign="center" py={4}><CircularProgress /></Box>
-  if (!travel) return <Typography>Not found</Typography>
-  if (!isAdmin) return <Container sx={{ mt: 3 }}><Typography>Only admins can access settings.</Typography></Container>
+  if (!travel) return <Typography>{t('common.notFound')}</Typography>
+  if (!isAdmin) return <Container sx={{ mt: 3 }}><Typography>{t('error.notAdmin')}</Typography></Container>
 
   return (
     <Container maxWidth="md" sx={{ mt: 3, mb: 3 }}>
       <Box display="flex" alignItems="center" gap={1} mb={3}>
-        <Typography variant="h5">Settings</Typography>
+        <Typography variant="h5">{t('settings.title')}</Typography>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -98,39 +100,39 @@ export default function SettingsPage() {
 
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom>Travel Details</Typography>
+          <Typography variant="h6" gutterBottom>{t('settings.travelDetails')}</Typography>
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField label="Travel Name" fullWidth value={form.name}
+              <TextField label={t('travel.travelName')} fullWidth value={form.name}
                 onChange={e => setForm({ ...form, name: e.target.value })} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField label="URL Prefix" fullWidth value={form.prefix}
+              <TextField label={t('travel.urlPrefix')} fullWidth value={form.prefix}
                 onChange={e => setForm({ ...form, prefix: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField label="Start Date" type="date" fullWidth value={form.startDate}
+              <TextField label={t('travel.startDate')} type="date" fullWidth value={form.startDate}
                 onChange={e => setForm({ ...form, startDate: e.target.value })}
                 InputLabelProps={{ shrink: true }} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField label="End Date" type="date" fullWidth value={form.endDate}
+              <TextField label={t('travel.endDate')} type="date" fullWidth value={form.endDate}
                 onChange={e => setForm({ ...form, endDate: e.target.value })}
                 InputLabelProps={{ shrink: true }} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField label="Main Currency" fullWidth value={form.mainCurrency}
+              <TextField label={t('travel.mainCurrency')} fullWidth value={form.mainCurrency}
                 onChange={e => setForm({ ...form, mainCurrency: e.target.value.toUpperCase() })} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth>
-                <InputLabel>Expense Permission</InputLabel>
-                <Select value={form.expensePermission} label="Expense Permission"
+                <InputLabel>{t('travel.expensePermission')}</InputLabel>
+                <Select value={form.expensePermission} label={t('travel.expensePermission')}
                   onChange={e => setForm({ ...form, expensePermission: Number(e.target.value) })}>
-                  <MenuItem value={1}>Admin only</MenuItem>
-                  <MenuItem value={2}>Everyone add, admin edit</MenuItem>
-                  <MenuItem value={3}>Everyone own</MenuItem>
-                  <MenuItem value={4}>Everyone all</MenuItem>
+                  <MenuItem value={1}>{t('travel.permission1')}</MenuItem>
+                  <MenuItem value={2}>{t('travel.permission2')}</MenuItem>
+                  <MenuItem value={3}>{t('travel.permission3')}</MenuItem>
+                  <MenuItem value={4}>{t('travel.permission4')}</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -138,7 +140,7 @@ export default function SettingsPage() {
 
           <Box mt={2}>
             <Typography variant="body2" color="text.secondary" gutterBottom>
-              Additional Currencies (max 10)
+              {t('travel.additionalCurrencies')}
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
               {availableCurrencies
@@ -161,32 +163,45 @@ export default function SettingsPage() {
 
           <Box mt={3} display="flex" gap={1}>
             <Button variant="contained" onClick={handleSave} disabled={saving}>
-              {saving ? <CircularProgress size={20} /> : 'Save Changes'}
+              {saving ? <CircularProgress size={20} /> : t('settings.saveChanges')}
             </Button>
           </Box>
         </CardContent>
       </Card>
 
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>{t('settings.language')}</Typography>
+          <FormControl fullWidth size="small" sx={{ maxWidth: 300 }}>
+            <Select value={locale} onChange={e => setLocale(e.target.value as any)}>
+              {(Object.entries(LOCALE_LABELS) as [string, string][]).map(([key, label]) => (
+                <MenuItem key={key} value={key}>{label}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardContent>
-          <Typography variant="h6" gutterBottom color="error">Danger Zone</Typography>
+          <Typography variant="h6" gutterBottom color="error">{t('settings.dangerZone')}</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Delete this travel and all associated data. This action cannot be undone.
+            {t('settings.dangerDesc')}
           </Typography>
           <Button color="error" variant="outlined" onClick={() => setDeleteOpen(true)}>
-            Delete Travel
+            {t('settings.deleteTravel')}
           </Button>
         </CardContent>
       </Card>
 
       <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)}>
-        <DialogTitle>Delete Travel?</DialogTitle>
+        <DialogTitle>{t('settings.deleteTravel')}?</DialogTitle>
         <DialogContent>
-          <Typography>Are you sure you want to delete "{travel.name}"? All expenses and data will be permanently removed.</Typography>
+          <Typography>{t('settings.deleteConfirm')} "{travel.name}"? {t('settings.allData')}</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteOpen(false)}>Cancel</Button>
-          <Button color="error" variant="contained" onClick={handleDelete}>Delete</Button>
+          <Button onClick={() => setDeleteOpen(false)}>{t('common.cancel')}</Button>
+          <Button color="error" variant="contained" onClick={handleDelete}>{t('common.delete')}</Button>
         </DialogActions>
       </Dialog>
     </Container>

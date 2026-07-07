@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useThemeMode } from '@/lib/ThemeContext'
+import { useT } from '@/lib/i18n/LanguageContext'
 
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
@@ -26,6 +27,7 @@ function HomePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const { mode, toggleTheme } = useThemeMode()
+  const { t } = useT()
   const [travels, setTravels] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [createOpen, setCreateOpen] = useState(false)
@@ -69,7 +71,7 @@ function HomePage() {
             <TravelExplore sx={{ mr: 1 }} />
             <Typography variant="h6" sx={{ flexGrow: 1 }}>TravelExpense</Typography>
             <Button color="inherit" onClick={() => signIn('google')}>
-              <Google sx={{ mr: 1 }} /> Sign in with Google
+              <Google sx={{ mr: 1 }} /> {t('auth.signInGoogle')}
             </Button>
           </Toolbar>
         </AppBar>
@@ -80,7 +82,7 @@ function HomePage() {
             Track shared expenses for your trips. Split bills, manage currencies, and settle up easily.
           </Typography>
           <Button variant="contained" size="large" onClick={() => signIn('google')} startIcon={<Google />}>
-            Sign in with Google
+            {t('auth.signInGoogle')}
           </Button>
         </Container>
       </Box>
@@ -99,18 +101,18 @@ function HomePage() {
           <IconButton color="inherit" onClick={toggleTheme} sx={{ mr: 1 }}>
             {mode === 'dark' ? <LightMode /> : <DarkMode />}
           </IconButton>
-          <Button color="inherit" onClick={() => signOut({ callbackUrl: '/' })}>Sign Out</Button>
+          <Button color="inherit" onClick={() => signOut({ callbackUrl: '/' })}>{t('auth.signOut')}</Button>
         </Toolbar>
       </AppBar>
       <Container maxWidth="md" sx={{ mt: 4, pb: 4 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h5">Your Travels</Typography>
+          <Typography variant="h5">{t('travel.yourTravels')}</Typography>
           <Box>
             <Button variant="outlined" startIcon={<Add />} onClick={() => setJoinDialog(true)} sx={{ mr: 1 }}>
-              Join
+              {t('travel.join')}
             </Button>
             <Button variant="contained" startIcon={<Add />} onClick={() => setCreateOpen(true)}>
-              New Travel
+              {t('travel.newTravel')}
             </Button>
           </Box>
         </Box>
@@ -123,7 +125,7 @@ function HomePage() {
           <Card>
             <CardContent sx={{ textAlign: 'center', py: 6 }}>
               <Typography color="text.secondary" gutterBottom>
-                No travels yet. Create your first travel!
+                {t('travel.noTravels')}
               </Typography>
             </CardContent>
           </Card>
@@ -170,12 +172,13 @@ function CreateTravelDialog({
   open, onClose, form, setForm, selectedCurrencies, setSelectedCurrencies,
   availableCurrencies, onCreated, setError,
 }: any) {
+  const { t } = useT()
   const [saving, setSaving] = useState(false)
   const [currencySearch, setCurrencySearch] = useState('')
 
   async function handleCreate() {
     if (!form.name.trim() || !form.prefix.trim()) {
-      setError('Name and prefix are required')
+      setError(t('travel.nameRequired'))
       return
     }
     setSaving(true)
@@ -205,18 +208,18 @@ function CreateTravelDialog({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Create New Travel</DialogTitle>
+      <DialogTitle>{t('travel.createTravel')}</DialogTitle>
       <DialogContent>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-          <TextField label="Travel Name" fullWidth value={form.name}
+          <TextField label={t('travel.travelName')} fullWidth value={form.name}
             onChange={e => setForm({ ...form, name: e.target.value })} />
-          <TextField label="URL Prefix" fullWidth value={form.prefix}
+          <TextField label={t('travel.urlPrefix')} fullWidth value={form.prefix}
             onChange={e => setForm({ ...form, prefix: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
-            helperText="Used in URL: yoursite.com/travel/[prefix]" />
+            helperText={t('travel.urlPrefixHelp')} />
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <DatePicker
-                  label="Start Date"
+                  label={t('travel.startDate')}
                   value={form.startDate}
                   onChange={(v: any) => setForm({ ...form, startDate: v })}
                   slotProps={{ textField: { fullWidth: true, size: 'medium' } }}
@@ -224,7 +227,7 @@ function CreateTravelDialog({
                 />
                 <Typography variant="h5" sx={{ mt: 1 }}>→</Typography>
                 <DatePicker
-                  label="End Date"
+                  label={t('travel.endDate')}
                   value={form.endDate}
                   onChange={(v: any) => setForm({ ...form, endDate: v })}
                   slotProps={{ textField: { fullWidth: true, size: 'medium' } }}
@@ -232,14 +235,14 @@ function CreateTravelDialog({
                 />
               </Box>
             </LocalizationProvider>
-          <TextField label="Main Currency" fullWidth value={form.mainCurrency}
+          <TextField label={t('travel.mainCurrency')} fullWidth value={form.mainCurrency}
             onChange={e => setForm({ ...form, mainCurrency: e.target.value.toUpperCase() })} />
 
           <Box>
             <Typography variant="body2" color="text.secondary" gutterBottom>
-              Additional Currencies (max 10)
+              {t('travel.additionalCurrencies')}
             </Typography>
-            <TextField size="small" placeholder="Search currencies..." fullWidth value={currencySearch}
+            <TextField size="small" placeholder={t('misc.searchCurrencies')} fullWidth value={currencySearch}
               onChange={e => setCurrencySearch(e.target.value.toUpperCase())} sx={{ mb: 1 }} />
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, maxHeight: 120, overflow: 'auto' }}>
               {availableCurrencies
@@ -262,25 +265,25 @@ function CreateTravelDialog({
 
           <Box>
             <Typography variant="body2" color="text.secondary" gutterBottom>
-              Expense Permission
+              {t('travel.expensePermission')}
             </Typography>
             <TextField select fullWidth value={form.permissions}
               onChange={e => setForm({ ...form, permissions: Number(e.target.value) })}
               SelectProps={{ native: true }}>
-              <option value={1}>Only admin can add/edit/delete</option>
-              <option value={2}>Everyone can add, only admin edit/delete</option>
-              <option value={3}>Everyone add/edit/delete own</option>
-              <option value={4}>Everyone add/edit/delete any</option>
+              <option value={1}>{t('travel.permission1')}</option>
+              <option value={2}>{t('travel.permission2')}</option>
+              <option value={3}>{t('travel.permission3')}</option>
+              <option value={4}>{t('travel.permission4')}</option>
             </TextField>
           </Box>
 
           <Box>
             <Typography variant="body2" color="text.secondary" gutterBottom>
-              Travel Members
+              {t('travel.travelMembers')}
             </Typography>
             {form.members.map((m: any, i: number) => (
               <Box key={i} sx={{ display: 'flex', gap: 1, mb: 1 }}>
-                <TextField size="small" label="Name" fullWidth value={m.name}
+                <TextField size="small" label={t('common.name')} fullWidth value={m.name}
                   onChange={e => {
                     const members = [...form.members]
                     members[i] = { ...members[i], name: e.target.value }
@@ -293,7 +296,7 @@ function CreateTravelDialog({
                     setForm({ ...form, members })
                   }}
                   sx={{ minWidth: 80 }}>
-                  {m.isAdmin ? 'Admin' : 'Member'}
+                  {m.isAdmin ? t('member.admin') : t('member.member')}
                 </Button>
                 {form.members.length > 1 && (
                   <IconButton size="small" onClick={() => {
@@ -305,15 +308,15 @@ function CreateTravelDialog({
             {form.members.length < 20 && (
               <Button size="small" onClick={() =>
                 setForm({ ...form, members: [...form.members, { name: '', isAdmin: false }] })
-              }>+ Add Member</Button>
+              }>{t('travel.addMember')}</Button>
             )}
           </Box>
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose}>{t('common.cancel')}</Button>
         <Button variant="contained" onClick={handleCreate} disabled={saving}>
-          {saving ? <CircularProgress size={20} /> : 'Create Travel'}
+          {saving ? <CircularProgress size={20} /> : t('travel.createTravel')}
         </Button>
       </DialogActions>
     </Dialog>
@@ -321,6 +324,7 @@ function CreateTravelDialog({
 }
 
 function JoinDialog({ open, onClose, onJoined, setError }: any) {
+  const { t } = useT()
   const [code, setCode] = useState('')
   const [joining, setJoining] = useState(false)
 
@@ -347,17 +351,16 @@ function JoinDialog({ open, onClose, onJoined, setError }: any) {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>Join a Travel</DialogTitle>
+      <DialogTitle>{t('travel.join')}</DialogTitle>
       <DialogContent>
-        <TextField label="Invitation Code" fullWidth value={code}
+        <TextField label={t('travel.inviteCode')} fullWidth value={code}
           onChange={e => setCode(e.target.value.toUpperCase())}
-          sx={{ mt: 1 }}
-          helperText="Enter the code you received from the travel creator" />
+          sx={{ mt: 1 }} />
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose}>{t('common.cancel')}</Button>
         <Button variant="contained" onClick={handleJoin} disabled={joining}>
-          {joining ? <CircularProgress size={20} /> : 'Join'}
+          {joining ? <CircularProgress size={20} /> : t('travel.join')}
         </Button>
       </DialogActions>
     </Dialog>

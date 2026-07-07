@@ -7,10 +7,12 @@ import {
   ListItemText, Chip, CircularProgress,
 } from '@mui/material'
 import { Receipt, People, AccountBalance, CurrencyExchange } from '@mui/icons-material'
+import { useT } from '@/lib/i18n/LanguageContext'
 
 export default function DashboardPage() {
   const params = useParams()
   const router = useRouter()
+  const { t } = useT()
   const prefix = params?.prefix as string
   const [travel, setTravel] = useState<any>(null)
   const [expenses, setExpenses] = useState<any[]>([])
@@ -28,7 +30,7 @@ export default function DashboardPage() {
   }, [prefix])
 
   if (loading) return <Box textAlign="center" py={4}><CircularProgress /></Box>
-  if (!travel) return <Typography>Travel not found</Typography>
+  if (!travel) return <Typography>{t('error.notFound')}</Typography>
 
   const currencies = [travel.mainCurrency, ...(JSON.parse(travel.currencies || '[]'))]
   const totalByCurrency: Record<string, number> = {}
@@ -46,7 +48,7 @@ export default function DashboardPage() {
             <CardContent>
               <Box display="flex" alignItems="center" gap={1} mb={1}>
                 <Receipt color="primary" />
-                <Typography color="text.secondary">Total Expenses</Typography>
+                <Typography color="text.secondary">{t('misc.totalExpenses')}</Typography>
               </Box>
               <Typography variant="h4">{totalExpenses}</Typography>
             </CardContent>
@@ -57,7 +59,7 @@ export default function DashboardPage() {
             <CardContent>
               <Box display="flex" alignItems="center" gap={1} mb={1}>
                 <People color="primary" />
-                <Typography color="text.secondary">Members</Typography>
+                <Typography color="text.secondary">{t('member.members')}</Typography>
               </Box>
               <Typography variant="h4">{travel.members?.length || 0}</Typography>
             </CardContent>
@@ -82,7 +84,7 @@ export default function DashboardPage() {
             <CardContent>
               <Box display="flex" alignItems="center" gap={1} mb={1}>
                 <AccountBalance color="primary" />
-                <Typography color="text.secondary">Balance</Typography>
+                <Typography color="text.secondary">{t('balance.title')}</Typography>
               </Box>
               {Object.entries(totalByCurrency).map(([c, amt]) => (
                 <Typography key={c} variant="body2">
@@ -96,9 +98,9 @@ export default function DashboardPage() {
         <Grid size={12}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>Recent Expenses</Typography>
+              <Typography variant="h6" gutterBottom>{t('misc.recentExpenses')}</Typography>
               {expenses.length === 0 ? (
-                <Typography color="text.secondary">No expenses yet</Typography>
+                <Typography color="text.secondary">{t('expense.noExpenses')}</Typography>
               ) : (
                 <List>
                   {expenses.slice(0, 10).map((exp: any) => (
@@ -106,11 +108,11 @@ export default function DashboardPage() {
                       <ListItemText
                         primary={
                           <Box display="flex" alignItems="center" gap={1}>
-                            {exp.description || 'No description'}
-                            {!exp.confirmed && <Chip label="Unconfirmed" size="small" color="warning" />}
+                            {exp.description || t('misc.noDescription')}
+                            {!exp.confirmed && <Chip label={t('expense.statusUnconfirmed')} size="small" color="warning" />}
                           </Box>
                         }
-                        secondary={`${exp.date} · ${exp.paidBy?.name || 'Unknown'}`}
+                        secondary={`${exp.date} · ${exp.paidBy?.name || t('misc.unknown')}`}
                       />
                       <Typography variant="body2" fontWeight="bold">
                         {exp.amount.toFixed(2)} {exp.currency}

@@ -9,11 +9,13 @@ import {
   CircularProgress, Alert, TextField, Divider,
 } from '@mui/material'
 import { Person, ContentCopy, Share, Add, Edit, Delete, GroupWork } from '@mui/icons-material'
+import { useT } from '@/lib/i18n/LanguageContext'
 
 export default function MembersPage() {
   const params = useParams()
   const router = useRouter()
   const { data: session } = useSession()
+  const { t } = useT()
   const prefix = params?.prefix as string
   const [travel, setTravel] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -116,15 +118,15 @@ export default function MembersPage() {
   }
 
   if (loading) return <Box textAlign="center" py={4}><CircularProgress /></Box>
-  if (!travel) return <Typography>Not found</Typography>
+  if (!travel) return <Typography>{t('common.notFound')}</Typography>
 
   return (
     <Container maxWidth="md" sx={{ mt: 3, mb: 3 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h5">Members</Typography>
+        <Typography variant="h5">{t('member.members')}</Typography>
         {isAdmin && (
           <Button variant="contained" startIcon={<Add />} onClick={() => { generateInvite(); setInviteDialog(true) }}>
-            Invite Member
+            {t('member.invite')}
           </Button>
         )}
       </Box>
@@ -151,9 +153,9 @@ export default function MembersPage() {
                   }
                 />
                 {member.isAdmin ? (
-                  <Chip label="Admin" color="primary" size="small" />
+                  <Chip label={t('member.admin')} color="primary" size="small" />
                 ) : (
-                  <Chip label="Member" variant="outlined" size="small" />
+                  <Chip label={t('member.member')} variant="outlined" size="small" />
                 )}
               </ListItem>
             )
@@ -167,18 +169,18 @@ export default function MembersPage() {
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
               <Typography variant="h6">
                 <GroupWork sx={{ mr: 0.5, verticalAlign: 'text-top' }} />
-                Groups
+                {t('member.groups')}
               </Typography>
               <Button size="small" startIcon={<Add />} onClick={() => {
                 setGroupForm({ name: '', memberIds: [] })
                 setGroupDialog('create')
               }}>
-                Create Group
+                {t('member.createGroup')}
               </Button>
             </Box>
             {groups.length === 0 ? (
               <Typography variant="body2" color="text.secondary">
-                No groups yet. Create groups to combine members as a single entity in the balance view.
+                {t('member.noGroups')}
               </Typography>
             ) : (
               groups.map((g: any) => (
@@ -201,21 +203,21 @@ export default function MembersPage() {
       )}
 
       <Dialog open={inviteDialog} onClose={() => setInviteDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Invite Members</DialogTitle>
+        <DialogTitle>{t('member.invite')}</DialogTitle>
         <DialogContent>
           {!inviteCode ? (
             <Box textAlign="center" py={2}><CircularProgress /></Box>
           ) : (
             <Box>
-              <Typography gutterBottom>Share this code with your travel companions:</Typography>
+              <Typography gutterBottom>{t('member.shareCode')}</Typography>
               <TextField fullWidth value={inviteCode} sx={{ mb: 2 }}
                 InputProps={{ sx: { fontSize: 24, textAlign: 'center', letterSpacing: 4 } }} />
-              <Typography gutterBottom>Or share this link:</Typography>
+              <Typography gutterBottom>{t('member.orLink')}</Typography>
               <Box display="flex" gap={1}>
                 <TextField fullWidth value={inviteLink} size="small" InputProps={{ readOnly: true }} />
                 <Button variant="outlined" onClick={() => copyToClipboard(inviteLink)}
                   startIcon={copied ? undefined : <ContentCopy />}>
-                  {copied ? 'Copied!' : 'Copy'}
+                  {copied ? t('common.copied') : t('common.copy')}
                 </Button>
               </Box>
               <Box mt={2} display="flex" gap={1}>
@@ -225,24 +227,24 @@ export default function MembersPage() {
                     if (navigator.share) { navigator.share({ text }) }
                     else { copyToClipboard(text) }
                   }}>
-                  Share
+                  {t('common.share')}
                 </Button>
               </Box>
             </Box>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setInviteDialog(false)}>Close</Button>
+          <Button onClick={() => setInviteDialog(false)}>{t('common.close')}</Button>
         </DialogActions>
       </Dialog>
 
       <Dialog open={!!groupDialog} onClose={() => setGroupDialog(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>{groupDialog === 'create' ? 'Create Group' : 'Edit Group'}</DialogTitle>
+        <DialogTitle>{groupDialog === 'create' ? t('member.createGroup') : t('member.editGroup')}</DialogTitle>
         <DialogContent>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-          <TextField label="Group Name" fullWidth value={groupForm.name}
+          <TextField label={t('member.groupName')} fullWidth value={groupForm.name}
             onChange={e => setGroupForm({ ...groupForm, name: e.target.value })} sx={{ mt: 1, mb: 2 }} />
-          <Typography variant="body2" color="text.secondary" gutterBottom>Members:</Typography>
+          <Typography variant="body2" color="text.secondary" gutterBottom>{t('member.members')}:</Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
             {members.map((m: any) => (
               <Chip key={m.id} label={m.name} size="small"
@@ -260,9 +262,9 @@ export default function MembersPage() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setGroupDialog(null)}>Cancel</Button>
+          <Button onClick={() => setGroupDialog(null)}>{t('common.cancel')}</Button>
           <Button variant="contained" onClick={handleGroupSave} disabled={saving}>
-            {saving ? <CircularProgress size={20} /> : 'Save'}
+            {saving ? <CircularProgress size={20} /> : t('common.save')}
           </Button>
         </DialogActions>
       </Dialog>

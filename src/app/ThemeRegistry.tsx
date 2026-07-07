@@ -3,6 +3,7 @@ import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { getTheme } from '@/theme'
 import { ThemeModeProvider, useThemeMode } from '@/lib/ThemeContext'
+import { LanguageProvider } from '@/lib/i18n/LanguageContext'
 
 function ThemedApp({ children }: { children: React.ReactNode }) {
   const { mode } = useThemeMode()
@@ -19,9 +20,11 @@ function ThemedApp({ children }: { children: React.ReactNode }) {
 export default function ThemeRegistry({ children }: { children: React.ReactNode }) {
   return (
     <ThemeModeProvider>
-      <ThemedApp>
-        {children}
-      </ThemedApp>
+      <LanguageProvider>
+        <ThemedApp>
+          {children}
+        </ThemedApp>
+      </LanguageProvider>
     </ThemeModeProvider>
   )
 }

@@ -9,10 +9,12 @@ import {
   FormControlLabel, Button,
 } from '@mui/material'
 import { AccountBalance, GroupWork, PictureAsPdf } from '@mui/icons-material'
+import { useT } from '@/lib/i18n/LanguageContext'
 
 export default function BalancePage() {
   const params = useParams()
   const router = useRouter()
+  const { t } = useT()
   const prefix = params?.prefix as string
   const [travel, setTravel] = useState<any>(null)
   const [expenses, setExpenses] = useState<any[]>([])
@@ -69,9 +71,9 @@ export default function BalancePage() {
           count++
         }
       }
-      setFetchMsg(`Fetched rates for ${count} currencies`)
+      setFetchMsg(`${t('balance.fetchSuccess')} ${count} ${t('balance.currencies')}`)
     } catch {
-      setFetchMsg('Failed to fetch rates. Check your internet connection.')
+      setFetchMsg(t('balance.fetchFailed'))
     } finally {
       setFetching(false)
       setTimeout(() => setFetchMsg(''), 3000)
@@ -79,7 +81,7 @@ export default function BalancePage() {
   }
 
   if (loading) return <Box textAlign="center" py={4}><CircularProgress /></Box>
-  if (!travel) return <Typography>Not found</Typography>
+  if (!travel) return <Typography>{t('common.notFound')}</Typography>
 
   const currencies = [travel.mainCurrency, ...(JSON.parse(travel.currencies || '[]'))]
   const confirmedExpenses = expenses.filter(e => e.confirmed)
@@ -208,34 +210,34 @@ export default function BalancePage() {
     <Container maxWidth="lg" sx={{ mt: 3, mb: 3 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} flexWrap="wrap" gap={1}>
         <Box display="flex" alignItems="center" gap={1}>
-          <Typography variant="h5">Balance</Typography>
+          <Typography variant="h5">{t('balance.title')}</Typography>
           <Button size="small" variant="outlined" startIcon={<PictureAsPdf />} onClick={async () => {
             const { exportPdf } = await import('@/lib/exportPdf')
             await exportPdf(travel, expenses, groups, rates, groupMode)
           }}>
-            Export PDF
+            {t('balance.exportPdf')}
           </Button>
         </Box>
         {groups.length > 0 && (
           <FormControlLabel
             control={<Switch checked={groupMode} onChange={e => setGroupMode(e.target.checked)} />}
-            label={<Box display="flex" alignItems="center" gap={0.5}><GroupWork fontSize="small" /> Group Mode</Box>}
+            label={<Box display="flex" alignItems="center" gap={0.5}><GroupWork fontSize="small" /> {t('balance.groupMode')}</Box>}
           />
         )}
       </Box>
 
       {groupMode && groups.length === 0 && (
-        <Box mb={2}><Typography variant="body2" color="text.secondary">No groups created yet. Go to Groups page to create them.</Typography></Box>
+        <Box mb={2}><Typography variant="body2" color="text.secondary">{t('member.noGroups')}</Typography></Box>
       )}
 
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom>Per Currency</Typography>
+          <Typography variant="h6" gutterBottom>{t('balance.perCurrency')}</Typography>
           <TableContainer component={Paper} variant="outlined">
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>{groupMode ? 'Entity' : 'Member'}</TableCell>
+                  <TableCell>{groupMode ? t('balance.entity') : t('balance.member')}</TableCell>
                   {currencies.map((c: string) => (
                     <TableCell key={c} align="right">{c}</TableCell>
                   ))}
@@ -254,7 +256,7 @@ export default function BalancePage() {
                           {row.subLabels.join(', ')}
                         </Typography>
                       )}
-                      {row.isAdmin && <Chip label="Admin" size="small" color="primary" variant="outlined" sx={{ ml: 1 }} />}
+                      {row.isAdmin && <Chip label={t('member.admin')} size="small" color="primary" variant="outlined" sx={{ ml: 1 }} />}
                     </TableCell>
                     {currencies.map((c: string) => {
                       const bal = getBalForRow(row, c)
@@ -277,16 +279,16 @@ export default function BalancePage() {
       <Card>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            Converted Balance (in {travel.mainCurrency})
+            {t('balance.converted')} ({travel.mainCurrency})
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Enter exchange rates below to see converted balances. Positive means others owe them, negative means they owe.
+            {t('balance.enterRates')}
           </Typography>
 
           <Box display="flex" alignItems="center" gap={2} mb={2}>
             <Button variant="outlined" size="small" onClick={fetchLiveRates} disabled={fetching}>
               {fetching ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
-              Fetch Live Rates
+              {t('balance.fetchRates')}
             </Button>
             {fetchMsg && (
               <Typography variant="caption" color={fetchMsg.includes('Failed') ? 'error' : 'success.main'}>
@@ -312,8 +314,8 @@ export default function BalancePage() {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>{groupMode ? 'Entity' : 'Member'}</TableCell>
-                  <TableCell align="right">Balance ({travel.mainCurrency})</TableCell>
+                  <TableCell>{groupMode ? t('balance.entity') : t('balance.member')}</TableCell>
+                  <TableCell align="right">{t('balance.balance')} ({travel.mainCurrency})</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>

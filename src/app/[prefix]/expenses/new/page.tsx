@@ -10,11 +10,13 @@ import {
   DialogTitle, DialogContent, DialogActions, CircularProgress, Alert,
 } from '@mui/material'
 import { ArrowBack, Calculate, Add } from '@mui/icons-material'
+import { useT } from '@/lib/i18n/LanguageContext'
 
 export default function NewExpensePage() {
   const params = useParams()
   const router = useRouter()
   const { data: session } = useSession()
+  const { t } = useT()
   const prefix = params?.prefix as string
   const [travel, setTravel] = useState<any>(null)
   const [saving, setSaving] = useState(false)
@@ -64,7 +66,7 @@ export default function NewExpensePage() {
 
   async function handleSubmit() {
     if (!form.amount || !form.paidById) {
-      setError('Amount and payer are required')
+      setError(t('error.required'))
       return
     }
     setSaving(true)
@@ -117,7 +119,7 @@ export default function NewExpensePage() {
     <Container maxWidth="md" sx={{ mt: 3, mb: 3 }}>
       <Box display="flex" alignItems="center" gap={1} mb={3}>
         <IconButton onClick={() => router.back()}><ArrowBack /></IconButton>
-        <Typography variant="h5">New Expense</Typography>
+        <Typography variant="h5">{t('expense.addExpense')}</Typography>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -126,26 +128,26 @@ export default function NewExpensePage() {
         <CardContent>
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField label="Date" type="date" fullWidth value={form.date}
+              <TextField label={t('expense.date')} type="date" fullWidth value={form.date}
                 onChange={e => setForm({ ...form, date: e.target.value })}
                 InputLabelProps={{ shrink: true }} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth>
-                <InputLabel>Currency</InputLabel>
-                <Select value={form.currency} label="Currency"
+                <InputLabel>{t('expense.currency')}</InputLabel>
+                <Select value={form.currency} label={t('expense.currency')}
                   onChange={e => setForm({ ...form, currency: e.target.value })}>
                   {currencies.map((c: string) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
                 </Select>
               </FormControl>
             </Grid>
             <Grid size={12}>
-              <TextField label="Description" fullWidth value={form.description}
+              <TextField label={t('expense.description')} fullWidth value={form.description}
                 onChange={e => setForm({ ...form, description: e.target.value })} />
             </Grid>
             <Grid size={12}>
               <Box display="flex" gap={1} alignItems="flex-end">
-                <TextField label="Amount" type="number" fullWidth value={form.amount}
+                <TextField label={t('expense.amount')} type="number" fullWidth value={form.amount}
                   onChange={e => setForm({ ...form, amount: e.target.value })} />
                 <IconButton color="primary" onClick={() => { setCalcValue(form.amount); setCalcOpen(true) }}>
                   <Calculate />
@@ -154,8 +156,8 @@ export default function NewExpensePage() {
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth>
-                <InputLabel>Paid By</InputLabel>
-                <Select value={form.paidById} label="Paid By"
+                <InputLabel>{t('expense.paidBy')}</InputLabel>
+                <Select value={form.paidById} label={t('expense.paidBy')}
                   onChange={e => setForm({ ...form, paidById: e.target.value })}>
                   {members.map((m: any) => <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>)}
                 </Select>
@@ -176,7 +178,7 @@ export default function NewExpensePage() {
                       ))}
                     </Select>
                   </FormControl>
-                  <TextField size="small" type="number" label="Amount" value={ep.amount}
+                  <TextField size="small" type="number" label={t('expense.amount')} value={ep.amount}
                     onChange={e => {
                       const updated = [...extraPayers]
                       updated[i] = { ...updated[i], amount: e.target.value }
@@ -189,19 +191,19 @@ export default function NewExpensePage() {
               ))}
               <Button size="small"
                 onClick={() => setExtraPayers([...extraPayers, { memberId: '', amount: '' }])}>
-                + Add co-payer
+                {t('expense.addCoPayer')}
               </Button>
               {extraPayers.some(ep => ep.memberId && ep.amount) && form.amount && (
                 <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
-                  Co-payers pay <strong>{extraPayers.reduce((s, ep) => s + (parseFloat(ep.amount) || 0), 0).toFixed(2)}</strong>,
-                  <strong> {members.find((m: any) => m.id === form.paidById)?.name || 'selected'}</strong> pays{' '}
+                  {t('expense.coPayersPay')} <strong>{extraPayers.reduce((s, ep) => s + (parseFloat(ep.amount) || 0), 0).toFixed(2)}</strong>,
+                  <strong> {members.find((m: any) => m.id === form.paidById)?.name || 'selected'}</strong> {t('expense.mainPayerPays')}{' '}
                   <strong>{(parseFloat(form.amount) - extraPayers.reduce((s, ep) => s + (parseFloat(ep.amount) || 0), 0)).toFixed(2)}</strong>
                 </Typography>
               )}
             </Grid>
             <Grid size={12}>
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                Split among:
+                {t('expense.splitAmong')}
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                 {members.map((m: any) => (
@@ -220,21 +222,21 @@ export default function NewExpensePage() {
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth>
-                <InputLabel>Split Type</InputLabel>
-                <Select value={form.splitType} label="Split Type"
+                <InputLabel>{t('expense.splitType')}</InputLabel>
+                <Select value={form.splitType} label={t('expense.splitType')}
                   onChange={e => {
                     setForm({ ...form, splitType: e.target.value })
                     if (e.target.value === 'equal') setSplits({})
                   }}>
-                  <MenuItem value="equal">Split Equally</MenuItem>
-                  <MenuItem value="manual">Manual Split</MenuItem>
+                  <MenuItem value="equal">{t('expense.splitEqually')}</MenuItem>
+                  <MenuItem value="manual">{t('expense.manualSplit')}</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             {form.splitType === 'manual' && (
               <Grid size={12}>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Enter amounts per person (leave empty for equal split of remaining)
+                  {t('expense.enterAmounts')}
                 </Typography>
                 {members.filter((m: any) => splitMemberIds.includes(m.id)).map((m: any) => (
                   <Box key={m.id} display="flex" alignItems="center" gap={1} mb={1}>
@@ -250,16 +252,16 @@ export default function NewExpensePage() {
               <FormControlLabel
                 control={<Switch checked={form.confirmed}
                   onChange={e => setForm({ ...form, confirmed: e.target.checked })} />}
-                label={form.confirmed ? 'Confirmed' : 'Not Confirmed (pre-booked)'}
+                label={form.confirmed ? t('expense.confirmed') : t('expense.unconfirmed')}
               />
             </Grid>
             <Grid size={12}>
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                Receipt Image (optional)
+                {t('expense.receiptImage')}
               </Typography>
               <Box display="flex" alignItems="center" gap={2}>
                 <Button variant="outlined" component="label">
-                  Choose File
+                  {t('expense.chooseFile')}
                   <input type="file" hidden accept="image/*"
                     onChange={e => {
                       const file = e.target.files?.[0]
@@ -282,9 +284,9 @@ export default function NewExpensePage() {
           </Grid>
 
           <Box mt={3} display="flex" gap={1} justifyContent="flex-end">
-            <Button onClick={() => router.back()}>Cancel</Button>
+            <Button onClick={() => router.back()}>{t('common.cancel')}</Button>
             <Button variant="contained" onClick={handleSubmit} disabled={saving}>
-              {saving ? <CircularProgress size={20} /> : 'Save Expense'}
+              {saving ? <CircularProgress size={20} /> : t('expense.saveExpense')}
             </Button>
           </Box>
         </CardContent>
@@ -297,6 +299,7 @@ export default function NewExpensePage() {
 }
 
 function CalculatorDialog({ open, value, onResult, onClose }: any) {
+  const { t } = useT()
   const [display, setDisplay] = useState(value || '0')
   const [op, setOp] = useState<string | null>(null)
   const [prev, setPrev] = useState<number | null>(null)
@@ -343,7 +346,7 @@ function CalculatorDialog({ open, value, onResult, onClose }: any) {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>Calculator</DialogTitle>
+      <DialogTitle>{t('expense.calculator')}</DialogTitle>
       <DialogContent>
         <TextField fullWidth value={display} sx={{ mb: 2, input: { textAlign: 'right', fontSize: 24 } }}
           InputProps={{ readOnly: true }} />
@@ -368,7 +371,7 @@ function CalculatorDialog({ open, value, onResult, onClose }: any) {
       </DialogContent>
       <DialogActions>
         <Button onClick={clear}>Clear</Button>
-        <Button onClick={() => onResult(display)}>Use Value</Button>
+        <Button onClick={() => onResult(display)}>{t('expense.useValue')}</Button>
       </DialogActions>
     </Dialog>
   )

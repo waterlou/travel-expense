@@ -5,8 +5,10 @@ import { useSession, signIn } from 'next-auth/react'
 import { Container, Box, Typography, Button, Card, CardContent, CircularProgress, Alert } from '@mui/material'
 import { TravelExplore, Google } from '@mui/icons-material'
 import { SessionProvider } from 'next-auth/react'
+import { useT } from '@/lib/i18n/LanguageContext'
 
 function InviteContent() {
+  const { t } = useT()
   const searchParams = useSearchParams()
   const router = useRouter()
   const { data: session, status } = useSession()
@@ -52,20 +54,20 @@ function InviteContent() {
         <Card sx={{ width: '100%' }}>
           <CardContent sx={{ textAlign: 'center', py: 4 }}>
             <TravelExplore sx={{ fontSize: 60, color: 'primary.main', mb: 2 }} />
-            <Typography variant="h5" gutterBottom>Travel Invitation</Typography>
+            <Typography variant="h5" gutterBottom>{t('invite.title')}</Typography>
 
             {!code && (
-              <Typography color="text.secondary">No invitation code provided.</Typography>
+              <Typography color="text.secondary">{t('invite.noCode')}</Typography>
             )}
 
             {status === 'unauthenticated' && code && (
               <Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  Sign in to join this travel
+                  {t('invite.signInToJoin')}
                 </Typography>
                 <Button variant="contained" startIcon={<Google />}
                   onClick={() => signIn('google', { callbackUrl: `/invite?code=${code}` })}>
-                  Sign in with Google
+                  {t('auth.signInGoogle')}
                 </Button>
               </Box>
             )}
@@ -73,13 +75,13 @@ function InviteContent() {
             {status === 'authenticated' && code && joining && (
               <Box>
                 <CircularProgress sx={{ mb: 2 }} />
-                <Typography>Joining travel...</Typography>
+                <Typography>{t('invite.joining')}</Typography>
               </Box>
             )}
 
             {result && (
               <Alert severity="success" sx={{ mt: 2 }}>
-                Joined {result.travelName}! Redirecting...
+                {t('invite.joined')} {result.travelName}! {t('invite.redirecting')}
               </Alert>
             )}
 

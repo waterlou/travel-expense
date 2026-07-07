@@ -53,7 +53,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tra
 
   try {
     const body = await req.json()
-    const { date, description, amount, currency, paidById, splitType, confirmed, splits, imageUrl } = body
+    const { date, description, amount, currency, paidById, extraPayers, splitType, splitMemberIds, confirmed, splits, imageUrl } = body
 
     if (!date || amount == null || !paidById) {
       return NextResponse.json({ error: 'Date, amount, and payer are required' }, { status: 400 })
@@ -72,13 +72,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tra
         amount: parseFloat(amount),
         currency: currency || travel.mainCurrency,
         paidById,
+        extraPayers: JSON.stringify(extraPayers || []),
         splitType: splitType || 'equal',
         confirmed: confirmed !== false,
         imageUrl: imageUrl || null,
         splits: {
-          create: travel.members.map(m => ({
-            memberId: m.id,
-            amount: splits?.[m.id] != null ? parseFloat(splits[m.id]) : null,
+          create: (splitMemberIds || travel.members.map((m: any) => m.id)).map((id: string) => ({
+            memberId: id,
+            amount: splits?.[id] != null ? parseFloat(splits[id]) : null,
           })),
         },
       },

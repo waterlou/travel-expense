@@ -9,7 +9,7 @@ import {
   FormControlLabel, Switch, Chip, IconButton, Dialog,
   DialogTitle, DialogContent, DialogActions, CircularProgress, Alert,
 } from '@mui/material'
-import { ArrowBack, Calculate } from '@mui/icons-material'
+import { ArrowBack, Calculate, Add } from '@mui/icons-material'
 
 export default function NewExpensePage() {
   const params = useParams()
@@ -32,6 +32,8 @@ export default function NewExpensePage() {
     confirmed: true,
   })
   const [splits, setSplits] = useState<Record<string, string>>({})
+  const [extraPayers, setExtraPayers] = useState<{ memberId: string; amount: string }[]>([])
+  const [splitMemberIds, setSplitMemberIds] = useState<string[]>([])
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
 
@@ -44,6 +46,7 @@ export default function NewExpensePage() {
           (m: any) => m.userId === (session?.user as any)?.id
         )
         if (currentUser) setForm(f => ({ ...f, paidById: currentUser.id }))
+        setSplitMemberIds(data.travel.members?.map((m: any) => m.id) || [])
       }
     })
   }, [prefix, session])
@@ -82,6 +85,11 @@ export default function NewExpensePage() {
       const body = {
         ...form,
         amount: parseFloat(form.amount),
+        extraPayers: extraPayers.filter(ep => ep.memberId).map(ep => ({
+          memberId: ep.memberId,
+          amount: parseFloat(ep.amount) || 0,
+        })),
+        splitMemberIds,
         splits: Object.entries(splits).reduce((acc: any, [k, v]) => {
           if (v) acc[k] = parseFloat(v)
           return acc
@@ -153,6 +161,63 @@ export default function NewExpensePage() {
                 </Select>
               </FormControl>
             </Grid>
+            <Grid size={12}>
+              {extraPayers.map((ep, i) => (
+                <Box key={i} display="flex" alignItems="center" gap={1} mb={1}>
+                  <FormControl size="small" sx={{ minWidth: 140 }}>
+                    <Select value={ep.memberId}
+                      onChange={e => {
+                        const updated = [...extraPayers]
+                        updated[i] = { ...updated[i], memberId: e.target.value }
+                        setExtraPayers(updated)
+                      }}>
+                      {members.filter((m: any) => m.id !== form.paidById).map((m: any) => (
+                        <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  <TextField size="small" type="number" label="Amount" value={ep.amount}
+                    onChange={e => {
+                      const updated = [...extraPayers]
+                      updated[i] = { ...updated[i], amount: e.target.value }
+                      setExtraPayers(updated)
+                    }} />
+                  <IconButton size="small" onClick={() => setExtraPayers(extraPayers.filter((_, j) => j !== i))}>
+                    <Typography color="error">×</Typography>
+                  </IconButton>
+                </Box>
+              ))}
+              <Button size="small"
+                onClick={() => setExtraPayers([...extraPayers, { memberId: '', amount: '' }])}>
+                + Add co-payer
+              </Button>
+              {extraPayers.some(ep => ep.memberId && ep.amount) && form.amount && (
+                <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+                  Co-payers pay <strong>{extraPayers.reduce((s, ep) => s + (parseFloat(ep.amount) || 0), 0).toFixed(2)}</strong>,
+                  <strong> {members.find((m: any) => m.id === form.paidById)?.name || 'selected'}</strong> pays{' '}
+                  <strong>{(parseFloat(form.amount) - extraPayers.reduce((s, ep) => s + (parseFloat(ep.amount) || 0), 0)).toFixed(2)}</strong>
+                </Typography>
+              )}
+            </Grid>
+            <Grid size={12}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Split among:
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                {members.map((m: any) => (
+                  <Chip key={m.id} label={m.name} size="small"
+                    variant={splitMemberIds.includes(m.id) ? 'filled' : 'outlined'}
+                    color={splitMemberIds.includes(m.id) ? 'primary' : 'default'}
+                    onClick={() => {
+                      if (splitMemberIds.includes(m.id)) {
+                        setSplitMemberIds(splitMemberIds.filter(id => id !== m.id))
+                      } else {
+                        setSplitMemberIds([...splitMemberIds, m.id])
+                      }
+                    }} />
+                ))}
+              </Box>
+            </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>Split Type</InputLabel>
@@ -171,7 +236,7 @@ export default function NewExpensePage() {
                 <Typography variant="body2" color="text.secondary" gutterBottom>
                   Enter amounts per person (leave empty for equal split of remaining)
                 </Typography>
-                {members.map((m: any) => (
+                {members.filter((m: any) => splitMemberIds.includes(m.id)).map((m: any) => (
                   <Box key={m.id} display="flex" alignItems="center" gap={1} mb={1}>
                     <Typography sx={{ minWidth: 100 }}>{m.name}:</Typography>
                     <TextField size="small" type="number" value={splits[m.id] || ''}

@@ -47,6 +47,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Maximum 10 additional currencies' }, { status: 400 })
     }
 
+    const currentUserId = (session.user as any).id
+
     const travel = await prisma.travel.create({
       data: {
         name,
@@ -57,15 +59,17 @@ export async function POST(req: NextRequest) {
         endDate: endDate || null,
         expensePermission: expensePermission || 1,
         members: {
-          create: members?.map((m: any) => ({
-            userId: (session.user as any).id,
-            name: m.name || 'Member',
-            isAdmin: m.isAdmin || false,
-          })) || [{
-            userId: (session.user as any).id,
-            name: session.user.name || 'Admin',
-            isAdmin: true,
-          }],
+          create: members?.length
+            ? members.map((m: any, i: number) => ({
+                userId: i === 0 ? currentUserId : null,
+                name: m.name || 'Member',
+                isAdmin: m.isAdmin || false,
+              }))
+            : [{
+                userId: currentUserId,
+                name: session.user.name || 'Admin',
+                isAdmin: true,
+              }],
         },
       },
       include: { members: true },

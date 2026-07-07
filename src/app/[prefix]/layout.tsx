@@ -11,14 +11,17 @@ import {
 import {
   Dashboard, Receipt, People, AccountBalance,
   Settings, Menu as MenuIcon, TravelExplore,
-  Logout, Person,
+  Logout, Person, Home, ArrowBack,
+  DarkMode, LightMode,
 } from '@mui/icons-material'
 import { signOut } from 'next-auth/react'
+import { useThemeMode } from '@/lib/ThemeContext'
 
 const navItems = [
   { label: 'Dashboard', icon: <Dashboard />, path: '' },
   { label: 'Expenses', icon: <Receipt />, path: '/expenses' },
   { label: 'Members', icon: <People />, path: '/members' },
+
   { label: 'Balance', icon: <AccountBalance />, path: '/balance' },
   { label: 'Settings', icon: <Settings />, path: '/settings' },
 ]
@@ -32,6 +35,7 @@ function TravelLayout({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+  const { mode, toggleTheme } = useThemeMode()
   const prefix = params?.prefix as string
 
   useEffect(() => {
@@ -63,6 +67,13 @@ function TravelLayout({ children }: { children: React.ReactNode }) {
       </Box>
       <Divider />
       <List>
+        <ListItem disablePadding>
+          <ListItemButton onClick={() => { router.push('/'); setMobileOpen(false) }}>
+            <ListItemIcon><Home /></ListItemIcon>
+            <ListItemText primary="All Travels" />
+          </ListItemButton>
+        </ListItem>
+        <Divider sx={{ my: 0.5 }} />
         {navItems.map(item => (
           <ListItem key={item.label} disablePadding>
             <ListItemButton
@@ -102,10 +113,15 @@ function TravelLayout({ children }: { children: React.ReactNode }) {
             onClick={() => setMobileOpen(!mobileOpen)}>
             <MenuIcon />
           </IconButton>
-          <TravelExplore sx={{ mr: 1 }} />
+          <IconButton color="inherit" sx={{ mr: 1 }} onClick={() => router.push('/')}>
+            <ArrowBack />
+          </IconButton>
           <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>
             {travel.name}
           </Typography>
+          <IconButton color="inherit" onClick={toggleTheme} sx={{ mr: 1 }}>
+            {mode === 'dark' ? <LightMode /> : <DarkMode />}
+          </IconButton>
           <IconButton color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)}>
             <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
               {session?.user?.name?.[0] || '?'}
@@ -116,7 +132,7 @@ function TravelLayout({ children }: { children: React.ReactNode }) {
               <Person sx={{ mr: 1 }} /> {session?.user?.email}
             </MenuItem>
             <Divider />
-            <MenuItem onClick={() => { signOut(); router.push('/') }}>
+            <MenuItem onClick={() => signOut({ callbackUrl: '/' })}>
               <Logout sx={{ mr: 1 }} /> Sign Out
             </MenuItem>
           </Menu>

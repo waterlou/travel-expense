@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import {
@@ -22,16 +22,27 @@ export default function ExpensesPage() {
   const [currencyFilter, setCurrencyFilter] = useState('all')
   const [confirmedFilter, setConfirmedFilter] = useState('all')
 
+  const listRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     Promise.all([
       fetch(`/api/travels/${prefix}`).then(r => r.json()),
       fetch(`/api/travels/${prefix}/expenses`).then(r => r.json()),
     ]).then(([t, e]) => {
       setTravel(t.travel)
-      setExpenses(e.expenses || [])
+      const sorted = (e.expenses || []).sort((a: any, b: any) => a.date.localeCompare(b.date))
+      setExpenses(sorted)
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [prefix])
+
+  useEffect(() => {
+    if (!loading && listRef.current) {
+      setTimeout(() => {
+        listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+      }, 100)
+    }
+  }, [loading])
 
   async function handleDelete(id: string) {
     await fetch(`/api/travels/${prefix}/expenses/${id}`, { method: 'DELETE' })
@@ -52,6 +63,49 @@ export default function ExpensesPage() {
   if (confirmedFilter === 'unconfirmed') filtered = filtered.filter(e => !e.confirmed)
 
   const currencies = [travel.mainCurrency, ...(JSON.parse(travel.currencies || '[]'))]
+
+  function getPayersInfo(exp: any, members: any[]) {
+    const primaryPayer = exp.paidBy?.name || 'Unknown'
+    const extraPayers = (() => {
+      try { return JSON.parse(exp.extraPayers || '[]') }
+      catch { return [] }
+    })()
+    if (extraPayers.length === 0) return `${primaryPayer} paid`
+    const extraNames = extraPayers.map((ep: any) => {
+      const m = members?.find((mm: any) => mm.id === ep.memberId)
+      return m?.name || 'Unknown'
+    })
+    return `${primaryPayer} + ${extraNames.join(', ')} paid`
+  }
+
+  function calcSplitAmount(exp: any, split: any, memberCount: number) {
+    if (split.amount != null) {
+      return { amount: split.amount, isCalculated: false }
+    }
+    const manualTotal = exp.splits?.reduce((s: number, sp: any) => s + (sp.amount || 0), 0) || 0
+    const manualCount = exp.splits?.filter((sp: any) => sp.amount != null).length || 0
+    const equalCount = memberCount - manualCount
+    const remaining = exp.amount - manualTotal
+    return { amount: equalCount > 0 ? remaining / equalCount : 0, isCalculated: true }
+  }
+
+  function groupByDate(exps: any[]): [string, any[]][] {
+    const map = new Map<string, any[]>()
+    for (const exp of exps) {
+      const d = exp.date || 'Unknown'
+      if (!map.has(d)) map.set(d, [])
+      map.get(d)!.push(exp)
+    }
+    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+  }
+
+  function formatDateHeader(date: string): string {
+    const d = new Date(date)
+    if (isNaN(d.getTime())) return date
+    return d.toLocaleDateString('en-US', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    })
+  }
 
   return (
     <Container maxWidth="lg" sx={{ mt: 3, mb: 3 }}>
@@ -86,63 +140,83 @@ export default function ExpensesPage() {
           </CardContent>
         </Card>
       ) : (
-        <List>
-          {filtered.map((exp: any) => {
-            const isCreator = exp.paidById === currentUser?.id
-            const canEdit = isAdmin || (permission >= 3 && isCreator) || permission >= 4
-            const canDel = isAdmin || (permission >= 3 && isCreator) || permission >= 4
+        <>
+          {groupByDate(filtered).map(([date, exps]) => (
+            <Box key={date} sx={{ mb: 3 }}>
+              <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1, px: 1 }}>
+                {formatDateHeader(date)}
+              </Typography>
+              {exps.map((exp: any) => {
+                const isCreator = exp.paidById === currentUser?.id
+                const canEdit = isAdmin || (permission >= 3 && isCreator) || permission >= 4
+                const canDel = isAdmin || (permission >= 3 && isCreator) || permission >= 4
 
-            return (
-              <Card key={exp.id} sx={{ mb: 1 }}>
-                <ListItem>
-                  <ListItemText
-                    primary={
-                      <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
-                        <Typography>{exp.description || 'No description'}</Typography>
-                        {!exp.confirmed && <Chip label="Unconfirmed" size="small" color="warning" variant="outlined" />}
-                        {exp.imageUrl && <Image fontSize="small" color="action" />}
-                      </Box>
-                    }
-                    secondary={
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">
-                          {exp.date} · {exp.paidBy?.name || 'Unknown'} paid
+                return (
+                  <Card key={exp.id} sx={{ mb: 1 }}>
+                    <ListItem>
+                      <ListItemText
+                        primary={
+                          <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
+                            <Typography>{exp.description || 'No description'}</Typography>
+                            {!exp.confirmed && <Chip label="Unconfirmed" size="small" color="warning" variant="outlined" />}
+                            {exp.imageUrl && <Image fontSize="small" color="action" />}
+                          </Box>
+                        }
+                        secondary={
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">
+                              {getPayersInfo(exp, travel.members)}
+                            </Typography>
+                            {exp.splits?.map((s: any) => {
+                              const { amount, isCalculated } = calcSplitAmount(exp, s, travel.members?.length || 1)
+                              return (
+                                <Chip key={s.id} size="small"
+                                  label={`${s.member?.name}: ${amount.toFixed(2)}`}
+                                  variant={isCalculated ? 'outlined' : 'filled'}
+                                  color={isCalculated ? 'default' : 'primary'}
+                                  sx={{
+                                    mr: 0.5, mt: 0.5,
+                                    fontStyle: isCalculated ? 'italic' : 'normal',
+                                    opacity: isCalculated ? 0.7 : 1,
+                                  }}
+                                />
+                              )
+                            })}
+                          </Box>
+                        }
+                      />
+                      <Box textAlign="right">
+                        <Typography variant="subtitle1" fontWeight="bold">
+                          {exp.amount.toFixed(2)} {exp.currency}
                         </Typography>
-                        {exp.splits?.map((s: any) => (
-                          <Chip key={s.id} size="small" label={`${s.member?.name}: ${s.amount?.toFixed(2) || 'equal'}`}
-                            variant="outlined" sx={{ mr: 0.5, mt: 0.5 }} />
-                        ))}
+                        <Box>
+                          {canEdit && (
+                            <IconButton size="small" onClick={() => router.push(`/${prefix}/expenses/${exp.id}`)}>
+                              <Edit fontSize="small" />
+                            </IconButton>
+                          )}
+                          {canDel && (
+                            <IconButton size="small" onClick={() => setDeleteTarget(exp)}>
+                              <Delete fontSize="small" />
+                            </IconButton>
+                          )}
+                        </Box>
                       </Box>
-                    }
-                  />
-                  <Box textAlign="right">
-                    <Typography variant="subtitle1" fontWeight="bold">
-                      {exp.amount.toFixed(2)} {exp.currency}
-                    </Typography>
-                    <Box>
-                      {canEdit && (
-                        <IconButton size="small" onClick={() => router.push(`/${prefix}/expenses/${exp.id}`)}>
-                          <Edit fontSize="small" />
-                        </IconButton>
-                      )}
-                      {canDel && (
-                        <IconButton size="small" onClick={() => setDeleteTarget(exp)}>
-                          <Delete fontSize="small" />
-                        </IconButton>
-                      )}
-                    </Box>
-                  </Box>
-                </ListItem>
-                {exp.imageUrl && (
-                  <Box sx={{ px: 2, pb: 1 }}>
-                    <img src={exp.imageUrl} alt="Expense" style={{ maxHeight: 150, borderRadius: 4 }} />
-                  </Box>
-                )}
-              </Card>
-            )
-          })}
-        </List>
+                    </ListItem>
+                    {exp.imageUrl && (
+                      <Box sx={{ px: 2, pb: 1 }}>
+                        <img src={exp.imageUrl} alt="Expense" style={{ maxHeight: 150, borderRadius: 4 }} />
+                      </Box>
+                    )}
+                  </Card>
+                )
+              })}
+            </Box>
+          ))}
+        </>
       )}
+
+      <div ref={listRef} />
 
       <Fab color="primary" sx={{ position: 'fixed', bottom: 80, right: 20, display: { md: 'none' } }}
         onClick={() => router.push(`/${prefix}/expenses/new`)}>

@@ -70,22 +70,35 @@ model Travel {
   expenses      Expense[]
   invitations   Invitation[]
   exchangeRates ExchangeRate[]
+  memberGroups  MemberGroup[]
 }
 
 model TravelMember {
   id       String  @id @default(cuid())
   travelId String
-  userId   String
+  userId   String?
   name     String
   isAdmin  Boolean @default(false)
+  groupId  String?
 
-  travel Travel @relation(fields: [travelId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  travel Travel     @relation(fields: [travelId], references: [id], onDelete: Cascade)
+  user   User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  group  MemberGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
 
   paidExpenses Expense[]      @relation("Payer")
   splits       ExpenseSplit[]
 
   @@unique([travelId, userId])
+}
+
+model MemberGroup {
+  id        String   @id @default(cuid())
+  travelId  String
+  name      String
+  createdAt DateTime @default(now())
+
+  travel  Travel        @relation(fields: [travelId], references: [id], onDelete: Cascade)
+  members TravelMember[]
 }
 
 model Expense {
@@ -96,6 +109,7 @@ model Expense {
   amount      Float
   currency    String
   paidById    String
+  extraPayers String?  @default("[]")
   splitType   String   @default("equal")
   confirmed   Boolean  @default(true)
   imageUrl    String?

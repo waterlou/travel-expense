@@ -32,11 +32,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Code expired' }, { status: 400 })
     }
 
+    const currentUserId = (session.user as any).id
+
     // Check if user is already a member
     const existingMember = await prisma.travelMember.findFirst({
       where: {
         travelId: invite.travelId,
-        userId: (session.user as any).id,
+        userId: currentUserId,
       },
     })
 
@@ -44,28 +46,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Already a member' }, { status: 400 })
     }
 
-    // Find an unclaimed member slot (created by admin but not yet linked to a user)
+    // Try to find an unclaimed member slot (created by admin, userId = null)
     const unclaimedMember = await prisma.travelMember.findFirst({
       where: {
         travelId: invite.travelId,
-        userId: (session.user as any).id,
+        userId: null,
       },
     })
 
-    // Create the member
-    const member = await prisma.travelMember.create({
-      data: {
-        travelId: invite.travelId,
-        userId: (session.user as any).id,
-        name: session.user.name || 'Member',
-        isAdmin: false,
-      },
-    })
+    if (unclaimedMember) {
+      // Claim the existing slot
+      await prisma.travelMember.update({
+        where: { id: unclaimedMember.id },
+        data: { userId: currentUserId },
+      })
+    } else {
+      // Create a new member entry
+      await prisma.travelMember.create({
+        data: {
+          travelId: invite.travelId,
+          userId: currentUserId,
+          name: session.user.name || 'Member',
+          isAdmin: false,
+        },
+      })
+    }
 
     // Mark invite as used
     await prisma.invitation.update({
       where: { id: invite.id },
-      data: { usedById: (session.user as any).id },
+      data: { usedById: currentUserId },
     })
 
     return NextResponse.json({

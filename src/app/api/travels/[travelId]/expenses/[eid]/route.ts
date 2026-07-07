@@ -68,13 +68,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ trav
         amount: parseFloat(body.amount),
         currency: body.currency,
         paidById: body.paidById,
+        extraPayers: JSON.stringify(body.extraPayers || []),
         splitType: body.splitType,
         confirmed: body.confirmed !== false,
         imageUrl: body.imageUrl,
         splits: {
-          create: travel.members.map(m => ({
-            memberId: m.id,
-            amount: body.splits?.[m.id] != null ? parseFloat(body.splits[m.id]) : null,
+          create: (body.splitMemberIds || travel.members.map((m: any) => m.id)).map((id: string) => ({
+            memberId: id,
+            amount: body.splits?.[id] != null ? parseFloat(body.splits[id]) : null,
           })),
         },
       },

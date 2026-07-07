@@ -1,11 +1,16 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useSession, signIn } from 'next-auth/react'
+import { useSession, signIn, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { useThemeMode } from '@/lib/ThemeContext'
 
+import { DatePicker } from '@mui/x-date-pickers/DatePicker'
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
+import dayjs from 'dayjs'
 import {
   Container, Box, Typography, Button, Card, CardContent,
-  Grid, AppBar, Toolbar, IconButton, Menu, MenuItem,
+  AppBar, Toolbar, IconButton, Menu, MenuItem,
   List, ListItem, ListItemText,
   Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, Chip, CircularProgress, Alert,
@@ -13,20 +18,22 @@ import {
 import {
   Add, Logout, TravelExplore, Google,
   ChevronRight, Menu as MenuIcon,
+  DarkMode, LightMode,
 } from '@mui/icons-material'
 import { SessionProvider } from 'next-auth/react'
 
 function HomePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const { mode, toggleTheme } = useThemeMode()
   const [travels, setTravels] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [createOpen, setCreateOpen] = useState(false)
   const [joinDialog, setJoinDialog] = useState(false)
   const [joinCode, setJoinCode] = useState('')
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<any>({
     name: '', prefix: '', mainCurrency: 'USD',
-    startDate: '', endDate: '', permissions: 1,
+    startDate: null, endDate: null, permissions: 1,
     members: [{ name: '', isAdmin: true }],
   })
   const [availableCurrencies] = useState([
@@ -89,7 +96,10 @@ function HomePage() {
           <Typography variant="body2" sx={{ mr: 2 }}>
             {session?.user?.email}
           </Typography>
-          <Button color="inherit" onClick={() => signIn('google')}><Google sx={{ mr: 0.5 }} /></Button>
+          <IconButton color="inherit" onClick={toggleTheme} sx={{ mr: 1 }}>
+            {mode === 'dark' ? <LightMode /> : <DarkMode />}
+          </IconButton>
+          <Button color="inherit" onClick={() => signOut({ callbackUrl: '/' })}>Sign Out</Button>
         </Toolbar>
       </AppBar>
       <Container maxWidth="md" sx={{ mt: 4, pb: 4 }}>
@@ -171,13 +181,16 @@ function CreateTravelDialog({
     setSaving(true)
     setError('')
     try {
+      const body = {
+        ...form,
+        startDate: form.startDate?.format?.('YYYY-MM-DD') || '',
+        endDate: form.endDate?.format?.('YYYY-MM-DD') || '',
+        currencies: selectedCurrencies,
+      }
       const res = await fetch('/api/travels', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...form,
-          currencies: selectedCurrencies,
-        }),
+        body: JSON.stringify(body),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to create travel')
@@ -200,18 +213,25 @@ function CreateTravelDialog({
           <TextField label="URL Prefix" fullWidth value={form.prefix}
             onChange={e => setForm({ ...form, prefix: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
             helperText="Used in URL: yoursite.com/travel/[prefix]" />
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 6 }}>
-              <TextField label="Start Date" type="date" fullWidth value={form.startDate}
-                onChange={e => setForm({ ...form, startDate: e.target.value })}
-                InputLabelProps={{ shrink: true }} />
-            </Grid>
-            <Grid size={{ xs: 6 }}>
-              <TextField label="End Date" type="date" fullWidth value={form.endDate}
-                onChange={e => setForm({ ...form, endDate: e.target.value })}
-                InputLabelProps={{ shrink: true }} />
-            </Grid>
-          </Grid>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <DatePicker
+                  label="Start Date"
+                  value={form.startDate}
+                  onChange={(v: any) => setForm({ ...form, startDate: v })}
+                  slotProps={{ textField: { fullWidth: true, size: 'medium' } }}
+                  sx={{ flex: 1 }}
+                />
+                <Typography variant="h5" sx={{ mt: 1 }}>→</Typography>
+                <DatePicker
+                  label="End Date"
+                  value={form.endDate}
+                  onChange={(v: any) => setForm({ ...form, endDate: v })}
+                  slotProps={{ textField: { fullWidth: true, size: 'medium' } }}
+                  sx={{ flex: 1 }}
+                />
+              </Box>
+            </LocalizationProvider>
           <TextField label="Main Currency" fullWidth value={form.mainCurrency}
             onChange={e => setForm({ ...form, mainCurrency: e.target.value.toUpperCase() })} />
 

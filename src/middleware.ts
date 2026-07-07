@@ -31,5 +31,5 @@ export default withAuth(
 )
 
 export const config = {
-  matcher: ['/((?!api/auth|_next/static|_next/image|favicon.ico|uploads).*)'],
+  matcher: ['/((?!api/auth|api/rates-proxy|_next/static|_next/image|favicon.ico|uploads).*)'],
 }

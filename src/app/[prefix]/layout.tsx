@@ -17,6 +17,7 @@ import {
 import { signOut } from 'next-auth/react'
 import { useThemeMode } from '@/lib/ThemeContext'
 import { useT } from '@/lib/i18n/LanguageContext'
+import { appUrl } from '@/lib/utils'
 
 function TravelLayout({ children }: { children: React.ReactNode }) {
   const params = useParams()
@@ -29,6 +30,7 @@ function TravelLayout({ children }: { children: React.ReactNode }) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const { mode, toggleTheme } = useThemeMode()
   const { t } = useT()
+  const bp = typeof process !== 'undefined' ? process.env.BASE_PATH : ''
   const prefix = params?.prefix as string
 
   const navItems = [
@@ -41,7 +43,7 @@ function TravelLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!prefix) return
-    fetch(`/api/travels/${prefix}`)
+    fetch(appUrl(`/api/travels/${prefix}`))
       .then(r => r.json())
       .then(data => {
         if (data.travel) setTravel(data.travel)
@@ -133,7 +135,7 @@ function TravelLayout({ children }: { children: React.ReactNode }) {
               <Person sx={{ mr: 1 }} /> {session?.user?.email}
             </MenuItem>
             <Divider />
-            <MenuItem onClick={() => signOut({ callbackUrl: '/' })}>
+            <MenuItem onClick={() => signOut({ callbackUrl: bp || '/' })}>
               <Logout sx={{ mr: 1 }} /> {t('nav.signOut')}
             </MenuItem>
           </Menu>

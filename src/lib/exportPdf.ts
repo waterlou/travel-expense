@@ -1,4 +1,5 @@
 import { PDFDocument, rgb, StandardFonts, PDFFont, PDFPage } from 'pdf-lib'
+import { appUrl } from '@/lib/utils'
 
 const MARGIN = 14
 const PAGE_W = 210
@@ -224,7 +225,7 @@ export async function exportPdf(
   const useCjk = needsCjk(travel, expenses, t)
   const mc = travel.mainCurrency
   const currencies = [mc, ...(JSON.parse(travel.currencies || '[]'))]
-  const members = travel.members || []
+  const members = (travel.members || []).sort((a: any, b: any) => a.id.localeCompare(b.id))
   const confirmed = expenses.filter((e: any) => e.confirmed)
   const bm = calcBals(expenses, members, currencies)
   const dRows = displayRows(travel, groups, groupMode)
@@ -342,7 +343,7 @@ export async function exportPdf(
     for (const exp of withImgs) {
       R.ensure(24)
       try {
-        const res = await fetch(exp.imageUrl)
+        const res = await fetch(appUrl(exp.imageUrl))
         const blob = await res.blob()
         const ab = await blob.arrayBuffer()
         const ext = exp.imageUrl.match(/\.png$/i)

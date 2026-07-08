@@ -10,6 +10,7 @@ import {
 } from '@mui/material'
 import { Add, Edit, Delete, Image } from '@mui/icons-material'
 import { useT } from '@/lib/i18n/LanguageContext'
+import { appUrl } from '@/lib/utils'
 
 export default function ExpensesPage() {
   const params = useParams()
@@ -28,8 +29,8 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`/api/travels/${prefix}`).then(r => r.json()),
-      fetch(`/api/travels/${prefix}/expenses`).then(r => r.json()),
+      fetch(appUrl(`/api/travels/${prefix}`)).then(r => r.json()),
+      fetch(appUrl(`/api/travels/${prefix}/expenses`)).then(r => r.json()),
     ]).then(([t, e]) => {
       setTravel(t.travel)
       const sorted = (e.expenses || []).sort((a: any, b: any) => a.date.localeCompare(b.date))
@@ -47,7 +48,7 @@ export default function ExpensesPage() {
   }, [loading])
 
   async function handleDelete(id: string) {
-    await fetch(`/api/travels/${prefix}/expenses/${id}`, { method: 'DELETE' })
+    await fetch(appUrl(`/api/travels/${prefix}/expenses/${id}`), { method: 'DELETE' })
     setExpenses(expenses.filter(e => e.id !== id))
     setDeleteTarget(null)
   }
@@ -207,7 +208,7 @@ export default function ExpensesPage() {
                     </ListItem>
                     {exp.imageUrl && (
                       <Box sx={{ px: 2, pb: 1 }}>
-                        <img src={exp.imageUrl} alt="Expense" style={{ maxHeight: 150, borderRadius: 4 }} />
+                        <img src={appUrl(exp.imageUrl)} alt="Expense" style={{ maxHeight: 150, borderRadius: 4 }} />
                       </Box>
                     )}
                   </Card>

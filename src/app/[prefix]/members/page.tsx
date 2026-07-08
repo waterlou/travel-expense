@@ -6,10 +6,11 @@ import {
   Container, Typography, Box, Card, CardContent, List, ListItem,
   ListItemText, ListItemAvatar, Avatar, Chip, IconButton,
   Button, Dialog, DialogTitle, DialogContent, DialogActions,
-  CircularProgress, Alert, TextField, Divider,
+  CircularProgress, Alert, TextField, Switch, FormControlLabel, Divider,
 } from '@mui/material'
 import { Person, ContentCopy, Share, Add, Edit, Delete, GroupWork } from '@mui/icons-material'
 import { useT } from '@/lib/i18n/LanguageContext'
+import { appUrl } from '@/lib/utils'
 
 export default function MembersPage() {
   const params = useParams()
@@ -22,7 +23,16 @@ export default function MembersPage() {
   const [inviteDialog, setInviteDialog] = useState(false)
   const [inviteCode, setInviteCode] = useState('')
   const [inviteLink, setInviteLink] = useState('')
+  const [inviteMulti, setInviteMulti] = useState(false)
   const [copied, setCopied] = useState(false)
+
+  // Invites state
+  const [invites, setInvites] = useState<any[]>([])
+  async function loadInvites() {
+    const res = await fetch(appUrl(`/api/travels/${prefix}/invites`))
+    const data = await res.json()
+    setInvites(data.invites || [])
+  }
 
   // Groups state
   const [groups, setGroups] = useState<any[]>([])
@@ -32,30 +42,40 @@ export default function MembersPage() {
   const [error, setError] = useState('')
 
   async function loadGroups() {
-    const res = await fetch(`/api/travels/${prefix}/groups`)
+    const res = await fetch(appUrl(`/api/travels/${prefix}/groups`))
     const data = await res.json()
     setGroups(data.groups || [])
   }
 
   useEffect(() => {
-    fetch(`/api/travels/${prefix}`).then(r => r.json()).then(data => {
+    fetch(appUrl(`/api/travels/${prefix}`)).then(r => r.json()).then(data => {
       setTravel(data.travel)
       setLoading(false)
     }).catch(() => setLoading(false))
     loadGroups()
   }, [prefix])
 
+  // Load invites separately (isAdmin isn't known until travel loads)
+  useEffect(() => {
+    if (travel) loadInvites()
+  }, [travel])
+
   const currentUser = travel?.members?.find((m: any) => m.userId === (session?.user as any)?.id)
   const isAdmin = currentUser?.isAdmin
   const members = travel?.members || []
 
   async function generateInvite() {
-    const res = await fetch(`/api/travels/${prefix}/invites`, { method: 'POST' })
+    const res = await fetch(appUrl(`/api/travels/${prefix}/invites`), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ multiUse: inviteMulti }),
+    })
     const data = await res.json()
     if (data.code) {
       setInviteCode(data.code)
       setInviteLink(`${window.location.origin}/invite?code=${data.code}`)
     }
+    loadInvites()
   }
 
   function copyToClipboard(text: string) {
@@ -71,8 +91,8 @@ export default function MembersPage() {
     try {
       const isEdit = groupDialog !== 'create'
       const url = isEdit
-        ? `/api/travels/${prefix}/groups/${groupDialog.id}`
-        : `/api/travels/${prefix}/groups`
+        ? appUrl(`/api/travels/${prefix}/groups/${groupDialog.id}`)
+        : appUrl(`/api/travels/${prefix}/groups`)
       const method = isEdit ? 'PUT' : 'POST'
       const res = await fetch(url, {
         method,
@@ -84,7 +104,7 @@ export default function MembersPage() {
       setGroupDialog(null)
       loadGroups()
       // Reload travel to get updated member groupIds
-      fetch(`/api/travels/${prefix}`).then(r => r.json()).then(d => {
+      fetch(appUrl(`/api/travels/${prefix}`)).then(r => r.json()).then(d => {
         if (d.travel) setTravel(d.travel)
       })
     } catch (e: any) {
@@ -95,9 +115,9 @@ export default function MembersPage() {
   }
 
   async function handleGroupDelete(gid: string) {
-    await fetch(`/api/travels/${prefix}/groups/${gid}`, { method: 'DELETE' })
+    await fetch(appUrl(`/api/travels/${prefix}/groups/${gid}`), { method: 'DELETE' })
     loadGroups()
-    fetch(`/api/travels/${prefix}`).then(r => r.json()).then(d => {
+    fetch(appUrl(`/api/travels/${prefix}`)).then(r => r.json()).then(d => {
       if (d.travel) setTravel(d.travel)
     })
   }
@@ -125,7 +145,12 @@ export default function MembersPage() {
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h5">{t('member.members')}</Typography>
         {isAdmin && (
-          <Button variant="contained" startIcon={<Add />} onClick={() => { generateInvite(); setInviteDialog(true) }}>
+          <Button variant="contained" startIcon={<Add />} onClick={() => {
+            setInviteCode('')
+            setInviteLink('')
+            setInviteMulti(false)
+            setInviteDialog(true)
+          }}>
             {t('member.invite')}
           </Button>
         )}
@@ -133,7 +158,7 @@ export default function MembersPage() {
 
       <Card sx={{ mb: 3 }}>
         <List>
-          {members.map((member: any) => {
+          {[...members].sort((a: any, b: any) => a.id.localeCompare(b.id)).map((member: any) => {
             const groupName = getMemberGroupName(member.id)
             return (
               <ListItem key={member.id} divider>
@@ -157,11 +182,66 @@ export default function MembersPage() {
                 ) : (
                   <Chip label={t('member.member')} variant="outlined" size="small" />
                 )}
+                {isAdmin && member.userId && !member.isAdmin && (
+                  <IconButton size="small" sx={{ ml: 1 }} onClick={async () => {
+                    await fetch(appUrl(`/api/travels/${prefix}/members/${member.id}/claim`), { method: 'DELETE' })
+                    fetch(appUrl(`/api/travels/${prefix}`)).then(r => r.json()).then(d => {
+                      if (d.travel) setTravel(d.travel)
+                    })
+                  }} title="Unlink user">
+                    <Typography color="error" fontSize="14px">×</Typography>
+                  </IconButton>
+                )}
               </ListItem>
             )
           })}
         </List>
       </Card>
+
+      {isAdmin && (
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Typography variant="h6">Invitation Codes</Typography>
+              <Button size="small" color="error" onClick={async () => {
+                await fetch(appUrl(`/api/travels/${prefix}/invites/clean`), { method: 'DELETE' })
+                loadInvites()
+              }}>
+                Clean inactive
+              </Button>
+            </Box>
+            {invites.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">
+                No invitation codes created yet.
+              </Typography>
+            ) : (
+              invites.map((inv: any) => (
+                <Box key={inv.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
+                  <Typography sx={{ fontFamily: 'monospace', fontSize: '1.1rem', letterSpacing: 2, minWidth: 100 }}>
+                    {inv.code}
+                  </Typography>
+                  <Chip label={inv.multiUse ? 'Multi' : 'Once'} size="small" color={inv.multiUse ? 'info' : 'default'} variant="outlined" />
+                  <Chip label={`${inv.usageCount} used`} size="small" variant="outlined" />
+                  <Chip label={inv.active ? 'Active' : 'Inactive'} size="small" color={inv.active ? 'success' : 'default'} variant="outlined" />
+                  <Switch size="small" checked={inv.active}
+                    disabled={!inv.multiUse && inv.usageCount >= 1}
+                    onChange={async () => {
+                    await fetch(appUrl(`/api/travels/${prefix}/invites/${inv.id}`), {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ active: !inv.active }),
+                    })
+                    loadInvites()
+                  }} />
+                  <Typography variant="caption" color="text.secondary">
+                    Expires: {new Date(inv.expiresAt).toLocaleDateString()}
+                  </Typography>
+                </Box>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {isAdmin && (
         <Card sx={{ mb: 3 }}>
@@ -206,7 +286,20 @@ export default function MembersPage() {
         <DialogTitle>{t('member.invite')}</DialogTitle>
         <DialogContent>
           {!inviteCode ? (
-            <Box textAlign="center" py={2}><CircularProgress /></Box>
+            <Box>
+              <Typography gutterBottom>Choose code type:</Typography>
+              <FormControlLabel
+                control={<Switch checked={inviteMulti} onChange={e => setInviteMulti(e.target.checked)} />}
+                label="Allow multiple uses (single use by default)"
+                sx={{ mb: 2 }}
+              />
+              <Button variant="contained" fullWidth onClick={async () => {
+                await generateInvite()
+                setInviteDialog(true)
+              }}>
+                Generate Code
+              </Button>
+            </Box>
           ) : (
             <Box>
               <Typography gutterBottom>{t('member.shareCode')}</Typography>
@@ -246,7 +339,7 @@ export default function MembersPage() {
             onChange={e => setGroupForm({ ...groupForm, name: e.target.value })} sx={{ mt: 1, mb: 2 }} />
           <Typography variant="body2" color="text.secondary" gutterBottom>{t('member.members')}:</Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-            {members.map((m: any) => (
+            {[...members].sort((a: any, b: any) => a.id.localeCompare(b.id)).map((m: any) => (
               <Chip key={m.id} label={m.name} size="small"
                 variant={groupForm.memberIds.includes(m.id) ? 'filled' : 'outlined'}
                 color={groupForm.memberIds.includes(m.id) ? 'primary' : 'default'}

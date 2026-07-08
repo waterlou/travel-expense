@@ -12,6 +12,7 @@ import {
 } from '@mui/material'
 import { ArrowBack, Calculate, Add } from '@mui/icons-material'
 import { useT } from '@/lib/i18n/LanguageContext'
+import { appUrl } from '@/lib/utils'
 
 export default function EditExpensePage() {
   const params = useParams()
@@ -45,8 +46,8 @@ export default function EditExpensePage() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`/api/travels/${prefix}`).then(r => r.json()),
-      fetch(`/api/travels/${prefix}/expenses/${expenseId}`).then(r => r.json()),
+      fetch(appUrl(`/api/travels/${prefix}`)).then(r => r.json()),
+      fetch(appUrl(`/api/travels/${prefix}/expenses/${expenseId}`)).then(r => r.json()),
     ]).then(([tData, eData]) => {
       if (tData.travel) {
         setTravel(tData.travel)
@@ -107,7 +108,7 @@ export default function EditExpensePage() {
       if (imageFile) {
         const imgData = new FormData()
         imgData.append('file', imageFile)
-        const imgRes = await fetch('/api/upload', { method: 'POST', body: imgData })
+        const imgRes = await fetch(appUrl('/api/upload'), { method: 'POST', body: imgData })
         if (imgRes.ok) {
           const imgJson = await imgRes.json()
           imageUrl = imgJson.url
@@ -129,7 +130,7 @@ export default function EditExpensePage() {
         imageUrl,
       }
 
-      const res = await fetch(`/api/travels/${prefix}/expenses/${expenseId}`, {
+      const res = await fetch(appUrl(`/api/travels/${prefix}/expenses/${expenseId}`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -191,7 +192,7 @@ export default function EditExpensePage() {
                 <InputLabel>{t('expense.paidBy')}</InputLabel>
                 <Select value={form.paidById} label={t('expense.paidBy')}
                   onChange={e => setForm({ ...form, paidById: e.target.value })}>
-                  {members.map((m: any) => <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>)}
+                  {[...members].sort((a: any, b: any) => a.id.localeCompare(b.id)).map((m: any) => <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>)}
                 </Select>
               </FormControl>
             </Grid>
@@ -238,7 +239,7 @@ export default function EditExpensePage() {
                 {t('expense.splitAmong')}
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {members.map((m: any) => (
+                {[...members].sort((a: any, b: any) => a.id.localeCompare(b.id)).map((m: any) => (
                   <Chip key={m.id} label={m.name} size="small"
                     variant={splitMemberIds.includes(m.id) ? 'filled' : 'outlined'}
                     color={splitMemberIds.includes(m.id) ? 'primary' : 'default'}
@@ -270,7 +271,7 @@ export default function EditExpensePage() {
                 <Typography variant="body2" color="text.secondary" gutterBottom>
                   {t('expense.enterAmounts')}
                 </Typography>
-                {members.filter((m: any) => splitMemberIds.includes(m.id)).map((m: any) => (
+                {[...members].sort((a: any, b: any) => a.id.localeCompare(b.id)).filter((m: any) => splitMemberIds.includes(m.id)).map((m: any) => (
                   <Box key={m.id} display="flex" alignItems="center" gap={1} mb={1}>
                     <Typography sx={{ minWidth: 100 }}>{m.name}:</Typography>
                     <TextField size="small" type="number" value={splits[m.id] || ''}
@@ -312,7 +313,7 @@ export default function EditExpensePage() {
                   </Box>
                 )}
                 {!imagePreview && existingImage && (
-                  <img src={existingImage} alt="Current" style={{ maxHeight: 80, borderRadius: 4 }} />
+                  <img src={appUrl(existingImage)} alt="Current" style={{ maxHeight: 80, borderRadius: 4 }} />
                 )}
               </Box>
             </Grid>

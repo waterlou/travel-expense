@@ -11,6 +11,7 @@ import {
 } from '@mui/material'
 import { ArrowBack, Calculate, Add } from '@mui/icons-material'
 import { useT } from '@/lib/i18n/LanguageContext'
+import { appUrl } from '@/lib/utils'
 
 export default function NewExpensePage() {
   const params = useParams()
@@ -40,7 +41,7 @@ export default function NewExpensePage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch(`/api/travels/${prefix}`).then(r => r.json()).then(data => {
+    fetch(appUrl(`/api/travels/${prefix}`)).then(r => r.json()).then(data => {
       if (data.travel) {
         setTravel(data.travel)
         setForm(f => ({ ...f, currency: data.travel.mainCurrency }))
@@ -77,7 +78,7 @@ export default function NewExpensePage() {
       if (imageFile) {
         const imgData = new FormData()
         imgData.append('file', imageFile)
-        const imgRes = await fetch('/api/upload', { method: 'POST', body: imgData })
+        const imgRes = await fetch(appUrl('/api/upload'), { method: 'POST', body: imgData })
         if (imgRes.ok) {
           const imgJson = await imgRes.json()
           imageUrl = imgJson.url
@@ -99,7 +100,7 @@ export default function NewExpensePage() {
         imageUrl,
       }
 
-      const res = await fetch(`/api/travels/${prefix}/expenses`, {
+      const res = await fetch(appUrl(`/api/travels/${prefix}/expenses`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -159,7 +160,7 @@ export default function NewExpensePage() {
                 <InputLabel>{t('expense.paidBy')}</InputLabel>
                 <Select value={form.paidById} label={t('expense.paidBy')}
                   onChange={e => setForm({ ...form, paidById: e.target.value })}>
-                  {members.map((m: any) => <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>)}
+                  {[...members].sort((a: any, b: any) => a.id.localeCompare(b.id)).map((m: any) => <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>)}
                 </Select>
               </FormControl>
             </Grid>
@@ -206,7 +207,7 @@ export default function NewExpensePage() {
                 {t('expense.splitAmong')}
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {members.map((m: any) => (
+                {[...members].sort((a: any, b: any) => a.id.localeCompare(b.id)).map((m: any) => (
                   <Chip key={m.id} label={m.name} size="small"
                     variant={splitMemberIds.includes(m.id) ? 'filled' : 'outlined'}
                     color={splitMemberIds.includes(m.id) ? 'primary' : 'default'}
@@ -238,7 +239,7 @@ export default function NewExpensePage() {
                 <Typography variant="body2" color="text.secondary" gutterBottom>
                   {t('expense.enterAmounts')}
                 </Typography>
-                {members.filter((m: any) => splitMemberIds.includes(m.id)).map((m: any) => (
+                {[...members].sort((a: any, b: any) => a.id.localeCompare(b.id)).filter((m: any) => splitMemberIds.includes(m.id)).map((m: any) => (
                   <Box key={m.id} display="flex" alignItems="center" gap={1} mb={1}>
                     <Typography sx={{ minWidth: 100 }}>{m.name}:</Typography>
                     <TextField size="small" type="number" value={splits[m.id] || ''}

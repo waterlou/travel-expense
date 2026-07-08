@@ -1,11 +1,16 @@
 'use client'
+import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { Container, Box, Typography, Button, Card, CardContent, Divider } from '@mui/material'
-import { Google, Apple, TravelExplore } from '@mui/icons-material'
+import { Google, Apple, Phone, TravelExplore } from '@mui/icons-material'
 import { useT } from '@/lib/i18n/LanguageContext'
+import PhoneSignIn from '@/components/PhoneSignIn'
 
 export default function LoginPage() {
   const { t } = useT()
+  const bp = typeof process !== 'undefined' ? process.env.BASE_PATH : ''
+  const [phoneOpen, setPhoneOpen] = useState(false)
+
   return (
     <Container maxWidth="xs">
       <Box minHeight="100vh" display="flex" alignItems="center" justifyContent="center">
@@ -19,7 +24,7 @@ export default function LoginPage() {
                 fullWidth
                 size="large"
                 startIcon={<Google />}
-                onClick={() => signIn('google', { callbackUrl: '/' })}
+                onClick={() => signIn('google', { callbackUrl: bp || '/' })}
               >
                 {t('auth.signInGoogle')}
               </Button>
@@ -28,14 +33,25 @@ export default function LoginPage() {
                 fullWidth
                 size="large"
                 startIcon={<Apple />}
-                onClick={() => signIn('apple', { callbackUrl: '/' })}
+                onClick={() => signIn('apple', { callbackUrl: bp || '/' })}
               >
                 {t('auth.signInApple')}
+              </Button>
+              <Divider>or</Divider>
+              <Button
+                variant="outlined"
+                fullWidth
+                size="large"
+                startIcon={<Phone />}
+                onClick={() => setPhoneOpen(true)}
+              >
+                {t('auth.signInPhone')}
               </Button>
             </Box>
           </CardContent>
         </Card>
       </Box>
+      <PhoneSignIn open={phoneOpen} onClose={() => setPhoneOpen(false)} callbackUrl={bp || '/'} />
     </Container>
   )
 }

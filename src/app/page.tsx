@@ -1,25 +1,25 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useThemeMode } from '@/lib/ThemeContext'
 import { useT } from '@/lib/i18n/LanguageContext'
+import { appUrl } from '@/lib/utils'
 
-import { DatePicker } from '@mui/x-date-pickers/DatePicker'
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
-import dayjs from 'dayjs'
+import DateRangeSelector from '@/components/DateRangeSelector'
+import PhoneSignIn from '@/components/PhoneSignIn'
 import {
   Container, Box, Typography, Button, Card, CardContent,
   AppBar, Toolbar, IconButton, Menu, MenuItem,
-  List, ListItem, ListItemText,
+  List, ListItem, ListItemText, Avatar, Divider,
   Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Chip, CircularProgress, Alert,
+  TextField, Chip, CircularProgress, Alert, FormControlLabel, Switch,
 } from '@mui/material'
 import {
-  Add, Logout, TravelExplore, Google, Apple,
+  Add, Logout, TravelExplore, Google, Apple, Phone,
   ChevronRight, Menu as MenuIcon,
-  DarkMode, LightMode,
+  DarkMode, LightMode, Person,
 } from '@mui/icons-material'
 import { SessionProvider } from 'next-auth/react'
 
@@ -28,14 +28,16 @@ function HomePage() {
   const router = useRouter()
   const { mode, toggleTheme } = useThemeMode()
   const { t } = useT()
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+  const [phoneOpen, setPhoneOpen] = useState(false)
   const [travels, setTravels] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [createOpen, setCreateOpen] = useState(false)
   const [joinDialog, setJoinDialog] = useState(false)
   const [joinCode, setJoinCode] = useState('')
   const [form, setForm] = useState<any>({
-    name: '', mainCurrency: 'USD',
-    startDate: null, endDate: null, permissions: 1,
+    name: '', mainCurrency: 'USD', allowMemberCreate: false,
+    startDate: null, endDate: null, permissions: 3,
     members: [{ name: '', isAdmin: true }],
   })
   const [availableCurrencies] = useState([
@@ -48,7 +50,7 @@ function HomePage() {
   useEffect(() => {
     if (status === 'unauthenticated') return
     if (status === 'authenticated') {
-      fetch('/api/travels').then(r => r.json()).then(data => {
+      fetch(appUrl('/api/travels')).then(r => r.json()).then(data => {
         setTravels(data.travels || [])
         setLoading(false)
       }).catch(() => setLoading(false))
@@ -65,16 +67,22 @@ function HomePage() {
 
   if (status === 'unauthenticated') {
     return (
-      <Box minHeight="100vh" display="flex" flexDirection="column">
+      <>
         <AppBar position="static">
           <Toolbar>
             <TravelExplore sx={{ mr: 1 }} />
             <Typography variant="h6" sx={{ flexGrow: 1 }}>TravelExpense</Typography>
-            <Button color="inherit" onClick={() => signIn('google')} sx={{ mr: 1 }}>
-              <Google sx={{ mr: 0.5 }} /> {t('auth.signInGoogle')}
+            <Button color="inherit" onClick={() => signIn('google')} sx={{ mr: 1, minWidth: 0 }}>
+              <Google />
+              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' }, ml: 0.5 }}>
+                {t('auth.signInGoogle')}
+              </Box>
             </Button>
-            <Button color="inherit" onClick={() => signIn('apple')}>
-              <Apple sx={{ mr: 0.5 }} /> {t('auth.signInApple')}
+            <Button color="inherit" onClick={() => signIn('apple')} sx={{ minWidth: 0 }}>
+              <Apple />
+              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' }, ml: 0.5 }}>
+                {t('auth.signInApple')}
+              </Box>
             </Button>
           </Toolbar>
         </AppBar>
@@ -91,10 +99,13 @@ function HomePage() {
             <Button variant="outlined" size="large" onClick={() => signIn('apple')} startIcon={<Apple />} sx={{ minWidth: 280 }}>
               {t('auth.signInApple')}
             </Button>
+            <Button variant="outlined" size="large" onClick={() => setPhoneOpen(true)} startIcon={<Phone />} sx={{ minWidth: 280 }}>
+              {t('auth.signInPhone')}
+            </Button>
           </Box>
         </Container>
-      </Box>
-    )
+      <PhoneSignIn open={phoneOpen} onClose={() => setPhoneOpen(false)} callbackUrl="/" />
+    </>)
   }
 
   return (
@@ -103,13 +114,23 @@ function HomePage() {
         <Toolbar>
           <TravelExplore sx={{ mr: 1 }} />
           <Typography variant="h6" sx={{ flexGrow: 1 }}>TravelExpense</Typography>
-          <Typography variant="body2" sx={{ mr: 2 }}>
-            {session?.user?.email}
-          </Typography>
           <IconButton color="inherit" onClick={toggleTheme} sx={{ mr: 1 }}>
             {mode === 'dark' ? <LightMode /> : <DarkMode />}
           </IconButton>
-          <Button color="inherit" onClick={() => signOut({ callbackUrl: '/' })}>{t('auth.signOut')}</Button>
+          <IconButton color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)}>
+            <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
+              {session?.user?.name?.[0] || '?'}
+            </Avatar>
+          </IconButton>
+          <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
+            <MenuItem disabled>
+              <Person sx={{ mr: 1 }} /> {session?.user?.email}
+            </MenuItem>
+            <Divider />
+            <MenuItem onClick={() => signOut({ callbackUrl: (typeof process !== 'undefined' ? process.env.BASE_PATH : '') || '/' })}>
+              <Logout sx={{ mr: 1 }} /> {t('auth.signOut')}
+            </MenuItem>
+          </Menu>
         </Toolbar>
       </AppBar>
       <Container maxWidth="md" sx={{ mt: 4, pb: 4 }}>
@@ -169,7 +190,6 @@ function HomePage() {
       <JoinDialog
         open={joinDialog}
         onClose={() => setJoinDialog(false)}
-        onJoined={(prefix: string) => router.push(`/${prefix}`)}
         setError={setError}
       />
     </Box>
@@ -183,6 +203,7 @@ function CreateTravelDialog({
   const { t } = useT()
   const [saving, setSaving] = useState(false)
   const [currencySearch, setCurrencySearch] = useState('')
+  const membersRef = useRef<HTMLDivElement>(null)
 
   async function handleCreate() {
     if (!form.name.trim()) {
@@ -198,7 +219,7 @@ function CreateTravelDialog({
         endDate: form.endDate?.format?.('YYYY-MM-DD') || '',
         currencies: selectedCurrencies,
       }
-      const res = await fetch('/api/travels', {
+      const res = await fetch(appUrl('/api/travels'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -221,27 +242,18 @@ function CreateTravelDialog({
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
           <TextField label={t('travel.travelName')} fullWidth value={form.name}
             onChange={e => setForm({ ...form, name: e.target.value })} />
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <DatePicker
-                  label={t('travel.startDate')}
-                  value={form.startDate}
-                  onChange={(v: any) => setForm({ ...form, startDate: v })}
-                  slotProps={{ textField: { fullWidth: true, size: 'medium' } }}
-                  sx={{ flex: 1 }}
-                />
-                <Typography variant="h5" sx={{ mt: 1 }}>→</Typography>
-                <DatePicker
-                  label={t('travel.endDate')}
-                  value={form.endDate}
-                  onChange={(v: any) => setForm({ ...form, endDate: v })}
-                  slotProps={{ textField: { fullWidth: true, size: 'medium' } }}
-                  sx={{ flex: 1 }}
-                />
-              </Box>
-            </LocalizationProvider>
-          <TextField label={t('travel.mainCurrency')} fullWidth value={form.mainCurrency}
-            onChange={e => setForm({ ...form, mainCurrency: e.target.value.toUpperCase() })} />
+          <DateRangeSelector
+            startDate={form.startDate}
+            endDate={form.endDate}
+            onChange={(s, e) => setForm({ ...form, startDate: s, endDate: e })}
+          />
+          <TextField label={t('travel.mainCurrency')} select fullWidth value={form.mainCurrency}
+            onChange={e => setForm({ ...form, mainCurrency: e.target.value })}
+            SelectProps={{ native: true }}>
+            {availableCurrencies.map((c: string) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </TextField>
 
           <Box>
             <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -282,10 +294,16 @@ function CreateTravelDialog({
             </TextField>
           </Box>
 
+          <FormControlLabel
+            control={<Switch checked={form.allowMemberCreate} onChange={e => setForm({ ...form, allowMemberCreate: e.target.checked })} />}
+            label="Allow invited users to create their own member entry"
+          />
+
           <Box>
             <Typography variant="body2" color="text.secondary" gutterBottom>
               {t('travel.travelMembers')}
             </Typography>
+            <Box ref={membersRef}>
             {form.members.map((m: any, i: number) => (
               <Box key={i} sx={{ display: 'flex', gap: 1, mb: 1 }}>
                 <TextField size="small" label={t('common.name')} fullWidth value={m.name}
@@ -311,10 +329,14 @@ function CreateTravelDialog({
               </Box>
             ))}
             {form.members.length < 20 && (
-              <Button size="small" onClick={() =>
+              <Button size="small" id="add-member-btn" onClick={() => {
                 setForm({ ...form, members: [...form.members, { name: '', isAdmin: false }] })
-              }>{t('travel.addMember')}</Button>
+                setTimeout(() => {
+                  document.getElementById('add-member-btn')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+                }, 50)
+              }}>{t('travel.addMember')}</Button>
             )}
+            </Box>
           </Box>
         </Box>
       </DialogContent>
@@ -328,30 +350,14 @@ function CreateTravelDialog({
   )
 }
 
-function JoinDialog({ open, onClose, onJoined, setError }: any) {
+function JoinDialog({ open, onClose, setError }: any) {
   const { t } = useT()
+  const router = useRouter()
   const [code, setCode] = useState('')
-  const [joining, setJoining] = useState(false)
 
-  async function handleJoin() {
+  function handleJoin() {
     if (!code.trim()) return
-    setJoining(true)
-    setError('')
-    try {
-      const res = await fetch('/api/invite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: code.toUpperCase() }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Invalid code')
-      onJoined(data.prefix)
-      onClose()
-    } catch (e: any) {
-      setError(e.message)
-    } finally {
-      setJoining(false)
-    }
+    router.push(`/invite?code=${code.toUpperCase()}`)
   }
 
   return (
@@ -364,8 +370,8 @@ function JoinDialog({ open, onClose, onJoined, setError }: any) {
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>{t('common.cancel')}</Button>
-        <Button variant="contained" onClick={handleJoin} disabled={joining}>
-          {joining ? <CircularProgress size={20} /> : t('travel.join')}
+        <Button variant="contained" onClick={handleJoin}>
+          {t('travel.join')}
         </Button>
       </DialogActions>
     </Dialog>

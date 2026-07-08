@@ -10,6 +10,7 @@ import {
 } from '@mui/material'
 import { AccountBalance, GroupWork, PictureAsPdf } from '@mui/icons-material'
 import { useT } from '@/lib/i18n/LanguageContext'
+import { appUrl } from '@/lib/utils'
 
 export default function BalancePage() {
   const params = useParams()
@@ -27,10 +28,10 @@ export default function BalancePage() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`/api/travels/${prefix}`).then(r => r.json()),
-      fetch(`/api/travels/${prefix}/expenses`).then(r => r.json()),
-      fetch(`/api/travels/${prefix}/rates`).then(r => r.json()),
-      fetch(`/api/travels/${prefix}/groups`).then(r => r.json()),
+      fetch(appUrl(`/api/travels/${prefix}`)).then(r => r.json()),
+      fetch(appUrl(`/api/travels/${prefix}/expenses`)).then(r => r.json()),
+      fetch(appUrl(`/api/travels/${prefix}/rates`)).then(r => r.json()),
+      fetch(appUrl(`/api/travels/${prefix}/groups`)).then(r => r.json()),
     ]).then(([t, e, r, g]) => {
       setTravel(t.travel)
       setExpenses(e.expenses || [])
@@ -48,7 +49,7 @@ export default function BalancePage() {
 
   async function updateRate(currency: string, rate: string) {
     setRates({ ...rates, [currency]: rate })
-    await fetch(`/api/travels/${prefix}/rates`, {
+    await fetch(appUrl(`/api/travels/${prefix}/rates`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fromCurrency: currency, rate: parseFloat(rate) || 0 }),
@@ -59,7 +60,7 @@ export default function BalancePage() {
     setFetching(true)
     setFetchMsg('')
     try {
-      const res = await fetch(`/api/rates-proxy?from=${travel.mainCurrency}`)
+      const res = await fetch(appUrl(`/api/rates-proxy?from=${travel.mainCurrency}`))
       const data = await res.json()
       const fetchedRates = data.rates || {}
       const currencyList = [travel.mainCurrency, ...(JSON.parse(travel.currencies || '[]'))]
@@ -247,16 +248,18 @@ export default function BalancePage() {
                 {displayRows.map((row: any) => (
                   <TableRow key={row.id}>
                     <TableCell>
-                      <Typography fontWeight={row.type === 'group' ? 'bold' : 'medium'}>
-                        {row.type === 'group' && <GroupWork sx={{ mr: 0.5, fontSize: 16, verticalAlign: 'text-top' }} />}
-                        {row.name}
-                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Typography fontWeight={row.type === 'group' ? 'bold' : 'medium'}>
+                          {row.type === 'group' && <GroupWork sx={{ mr: 0.5, fontSize: 16, verticalAlign: 'text-top' }} />}
+                          {row.name}
+                        </Typography>
+                        {row.isAdmin && <Chip label={t('member.admin')} size="small" color="primary" variant="outlined" />}
+                      </Box>
                       {row.subLabels && (
                         <Typography variant="caption" color="text.secondary">
                           {row.subLabels.join(', ')}
                         </Typography>
                       )}
-                      {row.isAdmin && <Chip label={t('member.admin')} size="small" color="primary" variant="outlined" sx={{ ml: 1 }} />}
                     </TableCell>
                     {currencies.map((c: string) => {
                       const bal = getBalForRow(row, c)

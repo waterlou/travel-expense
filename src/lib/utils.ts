@@ -1,5 +1,10 @@
 import { customAlphabet } from 'nanoid'
 
+export function appUrl(path: string): string {
+  const bp = typeof process !== 'undefined' ? process.env.BASE_PATH : ''
+  return bp ? `${bp}${path}` : path
+}
+
 export function generateInviteCode(): string {
   return customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 8)()
 }

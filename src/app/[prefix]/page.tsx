@@ -4,10 +4,11 @@ import { useParams, useRouter } from 'next/navigation'
 
 import {
   Container, Grid, Card, CardContent, Typography, Box, List, ListItem,
-  ListItemText, Chip, CircularProgress,
+  ListItemText, Chip, CircularProgress, Button,
 } from '@mui/material'
-import { Receipt, People, AccountBalance, CurrencyExchange } from '@mui/icons-material'
+import { Receipt, People, AccountBalance, CurrencyExchange, Add } from '@mui/icons-material'
 import { useT } from '@/lib/i18n/LanguageContext'
+import { appUrl } from '@/lib/utils'
 
 export default function DashboardPage() {
   const params = useParams()
@@ -20,8 +21,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`/api/travels/${prefix}`).then(r => r.json()),
-      fetch(`/api/travels/${prefix}/expenses`).then(r => r.json()),
+      fetch(appUrl(`/api/travels/${prefix}`)).then(r => r.json()),
+      fetch(appUrl(`/api/travels/${prefix}/expenses`)).then(r => r.json()),
     ]).then(([travelData, expenseData]) => {
       setTravel(travelData.travel)
       setExpenses(expenseData.expenses || [])
@@ -98,7 +99,13 @@ export default function DashboardPage() {
         <Grid size={12}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>{t('misc.recentExpenses')}</Typography>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                <Typography variant="h6">{t('misc.recentExpenses')}</Typography>
+                <Button size="small" variant="contained" startIcon={<Add />}
+                  onClick={() => router.push(`/${prefix}/expenses/new`)}>
+                  {t('expense.addExpense')}
+                </Button>
+              </Box>
               {expenses.length === 0 ? (
                 <Typography color="text.secondary">{t('expense.noExpenses')}</Typography>
               ) : (

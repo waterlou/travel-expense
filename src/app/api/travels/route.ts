@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { name, mainCurrency, currencies, startDate, endDate, expensePermission, members } = body
+    const { name, mainCurrency, currencies, startDate, endDate, expensePermission, allowMemberCreate, members } = body
 
     if (!name?.trim()) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 })
@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
         startDate: startDate || null,
         endDate: endDate || null,
         expensePermission: expensePermission || 1,
+        allowMemberCreate: allowMemberCreate === true,
         members: {
           create: members?.length
             ? members.map((m: any, i: number) => ({

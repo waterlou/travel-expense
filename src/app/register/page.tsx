@@ -1,11 +1,16 @@
 'use client'
-import { Container, Box, Typography, Button, Card, CardContent } from '@mui/material'
-import { Google, Apple, TravelExplore } from '@mui/icons-material'
+import { useState } from 'react'
+import { Container, Box, Typography, Button, Card, CardContent, Divider } from '@mui/material'
+import { Google, Apple, Phone, TravelExplore } from '@mui/icons-material'
 import { signIn } from 'next-auth/react'
 import { useT } from '@/lib/i18n/LanguageContext'
+import PhoneSignIn from '@/components/PhoneSignIn'
 
 export default function RegisterPage() {
   const { t } = useT()
+  const bp = typeof process !== 'undefined' ? process.env.BASE_PATH : ''
+  const [phoneOpen, setPhoneOpen] = useState(false)
+
   return (
     <Container maxWidth="xs">
       <Box minHeight="100vh" display="flex" alignItems="center" justifyContent="center">
@@ -19,7 +24,7 @@ export default function RegisterPage() {
                 fullWidth
                 size="large"
                 startIcon={<Google />}
-                onClick={() => signIn('google', { callbackUrl: '/' })}
+                onClick={() => signIn('google', { callbackUrl: bp || '/' })}
               >
                 {t('auth.signUpGoogle')}
               </Button>
@@ -28,14 +33,25 @@ export default function RegisterPage() {
                 fullWidth
                 size="large"
                 startIcon={<Apple />}
-                onClick={() => signIn('apple', { callbackUrl: '/' })}
+                onClick={() => signIn('apple', { callbackUrl: bp || '/' })}
               >
                 {t('auth.signUpApple')}
+              </Button>
+              <Divider>or</Divider>
+              <Button
+                variant="outlined"
+                fullWidth
+                size="large"
+                startIcon={<Phone />}
+                onClick={() => setPhoneOpen(true)}
+              >
+                {t('auth.signInPhone')}
               </Button>
             </Box>
           </CardContent>
         </Card>
       </Box>
+      <PhoneSignIn open={phoneOpen} onClose={() => setPhoneOpen(false)} callbackUrl={bp || '/'} />
     </Container>
   )
 }

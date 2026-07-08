@@ -7,10 +7,11 @@ import {
   Container, Typography, Box, Card, CardContent, TextField,
   Button, Grid, FormControl, InputLabel, Select, MenuItem,
   Chip, CircularProgress, Alert, Dialog, DialogTitle,
-  DialogContent, DialogActions,
+  DialogContent, DialogActions, FormControlLabel, Switch,
 } from '@mui/material'
 import { ArrowBack } from '@mui/icons-material'
 import { useT } from '@/lib/i18n/LanguageContext'
+import { appUrl } from '@/lib/utils'
 
 export default function SettingsPage() {
   const params = useParams()
@@ -27,7 +28,7 @@ export default function SettingsPage() {
 
   const [form, setForm] = useState({
     name: '', mainCurrency: 'USD',
-    startDate: '', endDate: '', expensePermission: 1,
+    startDate: '', endDate: '', expensePermission: 1, allowMemberCreate: false,
   })
   const [selectedCurrencies, setSelectedCurrencies] = useState<string[]>([])
   const [availableCurrencies] = useState([
@@ -36,7 +37,7 @@ export default function SettingsPage() {
   ])
 
   useEffect(() => {
-    fetch(`/api/travels/${prefix}`).then(r => r.json()).then(data => {
+    fetch(appUrl(`/api/travels/${prefix}`)).then(r => r.json()).then(data => {
       if (data.travel) {
         const t = data.travel
         setForm({
@@ -45,6 +46,7 @@ export default function SettingsPage() {
           startDate: t.startDate || '',
           endDate: t.endDate || '',
           expensePermission: t.expensePermission,
+          allowMemberCreate: t.allowMemberCreate === true,
         })
         setSelectedCurrencies(JSON.parse(t.currencies || '[]'))
         setTravel(t)
@@ -58,7 +60,7 @@ export default function SettingsPage() {
     setError('')
     setSuccess('')
     try {
-      const res = await fetch(`/api/travels/${prefix}`, {
+      const res = await fetch(appUrl(`/api/travels/${prefix}`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -77,7 +79,7 @@ export default function SettingsPage() {
   }
 
   async function handleDelete() {
-    await fetch(`/api/travels/${prefix}`, { method: 'DELETE' })
+    await fetch(appUrl(`/api/travels/${prefix}`), { method: 'DELETE' })
     router.push('/')
   }
 
@@ -136,6 +138,12 @@ export default function SettingsPage() {
               </FormControl>
             </Grid>
           </Grid>
+
+          <FormControlLabel
+            control={<Switch checked={form.allowMemberCreate} onChange={e => setForm({ ...form, allowMemberCreate: e.target.checked })} />}
+            label="Allow invited users to create their own member entry"
+            sx={{ mt: 2, mb: 0 }}
+          />
 
           <Box mt={2}>
             <Typography variant="body2" color="text.secondary" gutterBottom>

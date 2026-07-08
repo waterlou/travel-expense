@@ -5,10 +5,10 @@ export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token
     const pathname = req.nextUrl.pathname
+    const basePath = process.env.BASE_PATH || ''
 
     // Catch NextAuth error redirects that may miss the basePath
     if (pathname === '/api/auth/error') {
-      const basePath = process.env.BASE_PATH || ''
       if (basePath) {
         return NextResponse.redirect(new URL(`${basePath}/api/auth/error`, req.url))
       }
@@ -24,12 +24,12 @@ export default withAuth(
     }
 
     if (pathname === '/login' || pathname === '/register' || pathname.startsWith('/invite')) {
-      if (token && pathname !== '/invite') return NextResponse.redirect(new URL('/', req.url))
+      if (token && pathname !== '/invite') return NextResponse.redirect(new URL(basePath || '/', req.url))
       return NextResponse.next()
     }
 
     if (!token && pathname !== '/') {
-      const loginUrl = new URL('/login', req.url)
+      const loginUrl = new URL(`${basePath}/login`, req.url)
       loginUrl.searchParams.set('callbackUrl', pathname)
       return NextResponse.redirect(loginUrl)
     }

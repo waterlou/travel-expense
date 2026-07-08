@@ -1,6 +1,7 @@
 import { NextAuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import AppleProvider from 'next-auth/providers/apple'
+import CredentialsProvider from 'next-auth/providers/credentials'
 import jwt from 'jsonwebtoken'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from './prisma'
@@ -18,6 +19,30 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+    CredentialsProvider({
+      id: 'phone',
+      name: 'Phone',
+      credentials: {},
+      async authorize(credentials: any) {
+        if (!credentials?.idToken) return null
+        try {
+          const { getFirebaseAdmin } = await import('./firebase-admin')
+          const admin = await getFirebaseAdmin()
+          const decoded = await admin.verifyIdToken(credentials.idToken)
+          const phone = decoded.phone_number
+          if (!phone) return null
+          // Upsert user by phone
+          const user = await prisma.user.upsert({
+            where: { email: phone },
+            create: { email: phone, name: phone, emailVerified: new Date() },
+            update: {},
+          })
+          return { id: user.id, name: user.name, email: user.email }
+        } catch {
+          return null
+        }
+      },
     }),
   ],
   session: {

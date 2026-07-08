@@ -43,7 +43,6 @@ model User {
   accounts      Account[]
   sessions      Session[]
   members       TravelMember[]
-  invitationsUsed Invitation[] @relation("UsedInvitations")
 }
 
 model VerificationToken {
@@ -63,6 +62,7 @@ model Travel {
   mainCurrency      String   @default("USD")
   currencies        String   @default("[]")
   expensePermission Int      @default(1)
+  allowMemberCreate Boolean  @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -138,12 +138,13 @@ model Invitation {
   travelId  String
   code      String   @unique
   email     String?
-  usedById  String?
+  active    Boolean  @default(true)
+  multiUse  Boolean  @default(false)
+  usageCount Int     @default(0)
   expiresAt DateTime
   createdAt DateTime @default(now())
 
   travel Travel @relation(fields: [travelId], references: [id], onDelete: Cascade)
-  usedBy User?  @relation("UsedInvitations", fields: [usedById], references: [id])
 }
 
 model ExchangeRate {

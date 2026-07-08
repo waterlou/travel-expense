@@ -68,6 +68,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ trav
         startDate: body.startDate || null,
         endDate: body.endDate || null,
         expensePermission: body.expensePermission,
+        allowMemberCreate: body.allowMemberCreate === true,
       },
     })
 

@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { useSession, signIn } from 'next-auth/react'
+import { useSession, signIn, getProviders } from 'next-auth/react'
 import { Container, Box, Typography, Button, Card, CardContent, CircularProgress, Alert, Chip } from '@mui/material'
 import { TravelExplore, Google, Apple, Phone } from '@mui/icons-material'
 import { SessionProvider } from 'next-auth/react'
@@ -15,6 +15,7 @@ function InviteContent() {
   const router = useRouter()
   const { data: session, status } = useSession()
   const [phoneOpen, setPhoneOpen] = useState(false)
+  const [providers, setProviders] = useState<any>(null)
   const [joining, setJoining] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState('')
@@ -24,6 +25,10 @@ function InviteContent() {
   const code = searchParams.get('code') || ''
 
   // Step 1: on first load (authenticated + code), fetch invite info
+  useEffect(() => {
+    getProviders().then(setProviders)
+  }, [])
+
   useEffect(() => {
     if (status === 'authenticated' && code && !travelInfo && !result && !joining) {
       fetchTravelInfo()
@@ -107,14 +112,18 @@ function InviteContent() {
                     onClick={() => signIn('google', { callbackUrl: `/invite?code=${code}` })}>
                     {t('auth.signInGoogle')}
                   </Button>
-                  <Button variant="outlined" startIcon={<Apple />}
-                    onClick={() => signIn('apple', { callbackUrl: `/invite?code=${code}` })}>
-                    {t('auth.signInApple')}
-                  </Button>
-                  <Button variant="outlined" startIcon={<Phone />}
-                    onClick={() => setPhoneOpen(true)}>
-                    {t('auth.signInPhone')}
-                  </Button>
+                  {!!providers?.apple && (
+                    <Button variant="outlined" startIcon={<Apple />}
+                      onClick={() => signIn('apple', { callbackUrl: `/invite?code=${code}` })}>
+                      {t('auth.signInApple')}
+                    </Button>
+                  )}
+                  {!!providers?.phone && (
+                    <Button variant="outlined" startIcon={<Phone />}
+                      onClick={() => setPhoneOpen(true)}>
+                      {t('auth.signInPhone')}
+                    </Button>
+                  )}
                 </Box>
               </Box>
             )}

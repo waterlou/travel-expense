@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { useSession, signIn, signOut } from 'next-auth/react'
+import { useSession, signIn, signOut, getProviders } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useThemeMode } from '@/lib/ThemeContext'
 import { useT } from '@/lib/i18n/LanguageContext'
@@ -30,6 +30,7 @@ function HomePage() {
   const { t } = useT()
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [phoneOpen, setPhoneOpen] = useState(false)
+  const [providers, setProviders] = useState<any>(null)
   const [travels, setTravels] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [createOpen, setCreateOpen] = useState(false)
@@ -46,6 +47,10 @@ function HomePage() {
   ])
   const [selectedCurrencies, setSelectedCurrencies] = useState<string[]>([])
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    getProviders().then(setProviders)
+  }, [])
 
   useEffect(() => {
     if (status === 'unauthenticated') return
@@ -78,12 +83,14 @@ function HomePage() {
                 {t('auth.signInGoogle')}
               </Box>
             </Button>
-            <Button color="inherit" onClick={() => signIn('apple')} sx={{ minWidth: 0 }}>
-              <Apple />
-              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' }, ml: 0.5 }}>
-                {t('auth.signInApple')}
-              </Box>
-            </Button>
+            {!!providers?.apple && (
+              <Button color="inherit" onClick={() => signIn('apple')} sx={{ minWidth: 0 }}>
+                <Apple />
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' }, ml: 0.5 }}>
+                  {t('auth.signInApple')}
+                </Box>
+              </Button>
+            )}
           </Toolbar>
         </AppBar>
         <Container maxWidth="sm" sx={{ mt: 8, textAlign: 'center' }}>
@@ -96,12 +103,16 @@ function HomePage() {
             <Button variant="contained" size="large" onClick={() => signIn('google')} startIcon={<Google />} sx={{ minWidth: 280 }}>
               {t('auth.signInGoogle')}
             </Button>
-            <Button variant="outlined" size="large" onClick={() => signIn('apple')} startIcon={<Apple />} sx={{ minWidth: 280 }}>
-              {t('auth.signInApple')}
-            </Button>
-            <Button variant="outlined" size="large" onClick={() => setPhoneOpen(true)} startIcon={<Phone />} sx={{ minWidth: 280 }}>
-              {t('auth.signInPhone')}
-            </Button>
+            {!!providers?.apple && (
+              <Button variant="outlined" size="large" onClick={() => signIn('apple')} startIcon={<Apple />} sx={{ minWidth: 280 }}>
+                {t('auth.signInApple')}
+              </Button>
+            )}
+            {!!providers?.phone && (
+              <Button variant="outlined" size="large" onClick={() => setPhoneOpen(true)} startIcon={<Phone />} sx={{ minWidth: 280 }}>
+                {t('auth.signInPhone')}
+              </Button>
+            )}
           </Box>
         </Container>
       <PhoneSignIn open={phoneOpen} onClose={() => setPhoneOpen(false)} callbackUrl="/" />

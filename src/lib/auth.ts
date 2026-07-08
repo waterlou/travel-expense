@@ -54,6 +54,15 @@ export const authOptions: NextAuthOptions = {
         secure: isSecure,
       },
     },
+    callbackUrl: {
+      name: 'next-auth.callback-url',
+      options: {
+        httpOnly: true,
+        sameSite,
+        path: bp || '/',
+        secure: isSecure,
+      },
+    },
   },
   pages: {
     signIn: pb('/login'),

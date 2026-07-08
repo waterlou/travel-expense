@@ -8,6 +8,8 @@ import { prisma } from './prisma'
 
 const bp = process.env.BASE_PATH || ''
 const cookiePath = `${bp}/api/auth`
+const isSecure = process.env.NODE_ENV === 'production' || !!bp
+const sameSite = bp ? 'none' : 'lax'
 
 function pb(path: string) {
   return bp ? `${bp}${path}` : path
@@ -20,30 +22,6 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
-    CredentialsProvider({
-      id: 'phone',
-      name: 'Phone',
-      credentials: {},
-      async authorize(credentials: any) {
-        if (!credentials?.idToken) return null
-        try {
-          const { getFirebaseAdmin } = await import('./firebase-admin')
-          const admin = await getFirebaseAdmin()
-          const decoded = await admin.verifyIdToken(credentials.idToken)
-          const phone = decoded.phone_number
-          if (!phone) return null
-          // Upsert user by phone
-          const user = await prisma.user.upsert({
-            where: { email: phone },
-            create: { email: phone, name: phone, emailVerified: new Date() },
-            update: {},
-          })
-          return { id: user.id, name: user.name, email: user.email }
-        } catch {
-          return null
-        }
-      },
-    }),
   ],
   session: {
     strategy: 'jwt',
@@ -53,27 +31,27 @@ export const authOptions: NextAuthOptions = {
       name: 'next-auth.state',
       options: {
         httpOnly: true,
-        sameSite: 'lax',
+        sameSite,
         path: cookiePath,
-        secure: process.env.NODE_ENV === 'production',
+        secure: isSecure,
       },
     },
     pkceCodeVerifier: {
       name: 'next-auth.pkce.code_verifier',
       options: {
         httpOnly: true,
-        sameSite: 'lax',
+        sameSite,
         path: cookiePath,
-        secure: process.env.NODE_ENV === 'production',
+        secure: isSecure,
       },
     },
     nonce: {
       name: 'next-auth.nonce',
       options: {
         httpOnly: true,
-        sameSite: 'lax',
+        sameSite,
         path: cookiePath,
-        secure: process.env.NODE_ENV === 'production',
+        secure: isSecure,
       },
     },
   },
@@ -95,6 +73,35 @@ export const authOptions: NextAuthOptions = {
       return session
     },
   },
+}
+
+// Add Phone provider only if Firebase env vars are set
+if (process.env.NEXT_PUBLIC_FIREBASE_API_KEY && process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
+  authOptions.providers.push(
+    CredentialsProvider({
+      id: 'phone',
+      name: 'Phone',
+      credentials: {},
+      async authorize(credentials: any) {
+        if (!credentials?.idToken) return null
+        try {
+          const { getFirebaseAdmin } = await import('./firebase-admin')
+          const admin = await getFirebaseAdmin()
+          const decoded = await admin.verifyIdToken(credentials.idToken)
+          const phone = decoded.phone_number
+          if (!phone) return null
+          const user = await prisma.user.upsert({
+            where: { email: phone },
+            create: { email: phone, name: phone, emailVerified: new Date() },
+            update: {},
+          })
+          return { id: user.id, name: user.name, email: user.email }
+        } catch {
+          return null
+        }
+      },
+    })
+  )
 }
 
 // Add Apple provider only if env vars are set

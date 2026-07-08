@@ -62,7 +62,13 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async redirect({ url, baseUrl }) {
       if (!bp) return url
+      // Fix relative URLs missing basePath
       if (url.startsWith('/') && !url.startsWith(bp)) return `${baseUrl}${bp}${url}`
+      // Fix absolute URLs within our domain missing basePath
+      if (url.startsWith(baseUrl)) {
+        const rest = url.slice(baseUrl.length)
+        if (rest === '' || (!rest.startsWith(bp) && !rest.startsWith('/api/'))) return `${baseUrl}${bp}${rest}`
+      }
       return url
     },
     async jwt({ token, user }) {

@@ -130,7 +130,8 @@ export default function ExpensesPage() {
               <MenuItem value="unconfirmed">{t('expense.statusUnconfirmed')}</MenuItem>
             </Select>
           </FormControl>
-          <Button variant="contained" startIcon={<Add />} onClick={() => router.push(`/${prefix}/expenses/new`)}>
+          <Button variant="contained" startIcon={<Add />} onClick={() => router.push(`/${prefix}/expenses/new`)}
+            sx={{ display: { xs: 'none', md: 'inline-flex' } }}>
             {t('expense.addExpense')}
           </Button>
         </Box>

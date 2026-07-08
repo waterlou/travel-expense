@@ -63,32 +63,40 @@ function TravelLayout({ children }: { children: React.ReactNode }) {
   }
 
   const drawerContent = (
-    <Box>
-      <Box sx={{ p: 2, textAlign: 'center' }}>
-        <TravelExplore sx={{ fontSize: 40, color: 'primary.main' }} />
-        <Typography variant="subtitle1" noWrap>{travel?.name || 'Travel'}</Typography>
-      </Box>
-      <Divider />
-      <List>
-        <ListItem disablePadding>
-          <ListItemButton onClick={() => { router.push('/'); setMobileOpen(false) }}>
-            <ListItemIcon><Home /></ListItemIcon>
-            <ListItemText primary={t('nav.allTravels')} />
-          </ListItemButton>
-        </ListItem>
-        <Divider sx={{ my: 0.5 }} />
-        {navItems.map(item => (
-          <ListItem key={item.label} disablePadding>
-            <ListItemButton
-              selected={getActiveTab() === item.path}
-              onClick={() => { router.push(`/${prefix}${item.path}`); setMobileOpen(false) }}
-            >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.label} />
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <Box>
+        <Box sx={{ p: 2, textAlign: 'center' }}>
+          <TravelExplore sx={{ fontSize: 40, color: 'primary.main' }} />
+          <Typography variant="subtitle1" noWrap>{travel?.name || 'Travel'}</Typography>
+        </Box>
+        <Divider />
+        <List>
+          <ListItem disablePadding>
+            <ListItemButton onClick={() => { router.push('/'); setMobileOpen(false) }}>
+              <ListItemIcon><Home /></ListItemIcon>
+              <ListItemText primary={t('nav.allTravels')} />
             </ListItemButton>
           </ListItem>
-        ))}
-      </List>
+          <Divider sx={{ my: 0.5 }} />
+          {navItems.map(item => (
+            <ListItem key={item.label} disablePadding>
+              <ListItemButton
+                selected={getActiveTab() === item.path}
+                onClick={() => { router.push(`/${prefix}${item.path}`); setMobileOpen(false) }}
+              >
+                <ListItemIcon>{item.icon}</ListItemIcon>
+                <ListItemText primary={item.label} />
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
+      </Box>
+      <Box sx={{ flexGrow: 1 }} />
+      <Divider />
+      <ListItemButton onClick={toggleTheme} sx={{ borderRadius: 0 }}>
+        <ListItemIcon>{mode === 'dark' ? <LightMode /> : <DarkMode />}</ListItemIcon>
+        <ListItemText primary={mode === 'dark' ? t('theme.light') : t('theme.dark')} />
+      </ListItemButton>
     </Box>
   )
 
@@ -122,9 +130,6 @@ function TravelLayout({ children }: { children: React.ReactNode }) {
           <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>
             {travel.name}
           </Typography>
-          <IconButton color="inherit" onClick={toggleTheme} sx={{ mr: 1 }}>
-            {mode === 'dark' ? <LightMode /> : <DarkMode />}
-          </IconButton>
           <IconButton color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)}>
             <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
               {session?.user?.name?.[0] || '?'}

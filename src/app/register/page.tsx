@@ -1,6 +1,6 @@
 'use client'
-import { useState } from 'react'
-import { signIn, SessionProvider } from 'next-auth/react'
+import { useState, useEffect } from 'react'
+import { signIn, getProviders, SessionProvider } from 'next-auth/react'
 import { Container, Box, Typography, Button, Card, CardContent, Divider } from '@mui/material'
 import { Google, Apple, Phone, TravelExplore } from '@mui/icons-material'
 import { useT } from '@/lib/i18n/LanguageContext'
@@ -10,6 +10,14 @@ function RegisterContent() {
   const { t } = useT()
   const bp = typeof process !== 'undefined' ? process.env.BASE_PATH : ''
   const [phoneOpen, setPhoneOpen] = useState(false)
+  const [providers, setProviders] = useState<any>(null)
+
+  useEffect(() => {
+    getProviders().then(setProviders)
+  }, [])
+
+  const hasApple = !!providers?.apple
+  const hasPhone = !!providers?.phone
 
   return (
     <Container maxWidth="xs">
@@ -28,25 +36,29 @@ function RegisterContent() {
               >
                 {t('auth.signUpGoogle')}
               </Button>
-              <Button
-                variant="outlined"
-                fullWidth
-                size="large"
-                startIcon={<Apple />}
-                onClick={() => signIn('apple', { callbackUrl: bp || '/' })}
-              >
-                {t('auth.signUpApple')}
-              </Button>
-              <Divider>or</Divider>
-              <Button
-                variant="outlined"
-                fullWidth
-                size="large"
-                startIcon={<Phone />}
-                onClick={() => setPhoneOpen(true)}
-              >
-                {t('auth.signInPhone')}
-              </Button>
+              {hasApple && (
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  size="large"
+                  startIcon={<Apple />}
+                  onClick={() => signIn('apple', { callbackUrl: bp || '/' })}
+                >
+                  {t('auth.signUpApple')}
+                </Button>
+              )}
+              {(hasApple && hasPhone) || (hasPhone && !hasApple) ? <Divider>or</Divider> : null}
+              {hasPhone && (
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  size="large"
+                  startIcon={<Phone />}
+                  onClick={() => setPhoneOpen(true)}
+                >
+                  {t('auth.signInPhone')}
+                </Button>
+              )}
             </Box>
           </CardContent>
         </Card>

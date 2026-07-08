@@ -1,12 +1,12 @@
 'use client'
 import { useState } from 'react'
-import { signIn } from 'next-auth/react'
+import { signIn, SessionProvider } from 'next-auth/react'
 import { Container, Box, Typography, Button, Card, CardContent, Divider } from '@mui/material'
 import { Google, Apple, Phone, TravelExplore } from '@mui/icons-material'
 import { useT } from '@/lib/i18n/LanguageContext'
 import PhoneSignIn from '@/components/PhoneSignIn'
 
-export default function LoginPage() {
+function LoginContent() {
   const { t } = useT()
   const bp = typeof process !== 'undefined' ? process.env.BASE_PATH : ''
   const [phoneOpen, setPhoneOpen] = useState(false)
@@ -53,5 +53,14 @@ export default function LoginPage() {
       </Box>
       <PhoneSignIn open={phoneOpen} onClose={() => setPhoneOpen(false)} callbackUrl={bp || '/'} />
     </Container>
+  )
+}
+
+export default function LoginPage() {
+  const bp = typeof process !== 'undefined' ? process.env.BASE_PATH : ''
+  return (
+    <SessionProvider basePath={bp ? `${bp}/api/auth` : undefined}>
+      <LoginContent />
+    </SessionProvider>
   )
 }

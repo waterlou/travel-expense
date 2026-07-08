@@ -60,6 +60,11 @@ export const authOptions: NextAuthOptions = {
     error: pb('/api/auth/error'),
   },
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      if (!bp) return url
+      if (url.startsWith('/') && !url.startsWith(bp)) return `${baseUrl}${bp}${url}`
+      return url
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id

@@ -169,7 +169,9 @@ export default function MembersPage() {
                   primary={member.name}
                   secondary={
                     <Box>
-                      {member.user?.email || ''}
+                      <Typography variant="caption" noWrap sx={{ maxWidth: 180, display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', verticalAlign: 'middle' }}>
+                        {member.user?.email || ''}
+                      </Typography>
                       {groupName && (
                         <Chip icon={<GroupWork />} label={groupName} size="small" variant="outlined"
                           sx={{ ml: 1 }} />

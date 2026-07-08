@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 
 import {
   Container, Grid, Card, CardContent, Typography, Box, List, ListItem,
-  ListItemText, Chip, CircularProgress, Button,
+  ListItemText, Chip, CircularProgress, Button, Fab,
 } from '@mui/material'
 import { Receipt, People, AccountBalance, CurrencyExchange, Add } from '@mui/icons-material'
 import { useT } from '@/lib/i18n/LanguageContext'
@@ -102,7 +102,8 @@ export default function DashboardPage() {
               <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                 <Typography variant="h6">{t('misc.recentExpenses')}</Typography>
                 <Button size="small" variant="contained" startIcon={<Add />}
-                  onClick={() => router.push(`/${prefix}/expenses/new`)}>
+                  onClick={() => router.push(`/${prefix}/expenses/new`)}
+                  sx={{ display: { xs: 'none', md: 'inline-flex' } }}>
                   {t('expense.addExpense')}
                 </Button>
               </Box>
@@ -132,6 +133,10 @@ export default function DashboardPage() {
           </Card>
         </Grid>
       </Grid>
+      <Fab color="primary" sx={{ position: 'fixed', bottom: 80, right: 20, display: { md: 'none' } }}
+        onClick={() => router.push(`/${prefix}/expenses/new`)}>
+        <Add />
+      </Fab>
     </Container>
   )
 }

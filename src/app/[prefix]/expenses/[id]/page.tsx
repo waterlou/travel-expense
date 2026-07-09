@@ -13,6 +13,7 @@ import {
 import { ArrowBack, Calculate, Add } from '@mui/icons-material'
 import { useT } from '@/lib/i18n/LanguageContext'
 import { appUrl } from '@/lib/utils'
+import ImageLightbox from '@/components/ImageLightbox'
 
 export default function EditExpensePage() {
   const params = useParams()
@@ -43,6 +44,7 @@ export default function EditExpensePage() {
   const [existingImage, setExistingImage] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [lightboxSrc, setLightboxSrc] = useState('')
 
   useEffect(() => {
     Promise.all([
@@ -313,7 +315,13 @@ export default function EditExpensePage() {
                   </Box>
                 )}
                 {!imagePreview && existingImage && (
-                  <img src={appUrl(existingImage)} alt="Current" style={{ maxHeight: 80, borderRadius: 4 }} />
+                  <Box
+                    component="img"
+                    src={appUrl(existingImage)}
+                    alt="Current"
+                    onClick={() => setLightboxSrc(appUrl(existingImage))}
+                    sx={{ maxHeight: 150, borderRadius: 1, cursor: 'pointer', '&:hover': { opacity: 0.85 } }}
+                  />
                 )}
               </Box>
             </Grid>
@@ -327,6 +335,8 @@ export default function EditExpensePage() {
           </Box>
         </CardContent>
       </Card>
+
+      <ImageLightbox open={!!lightboxSrc} src={lightboxSrc} onClose={() => setLightboxSrc('')} />
 
       <CalculatorDialog open={calcOpen} value={calcValue}
         onResult={handleCalcResult} onClose={() => setCalcOpen(false)} />

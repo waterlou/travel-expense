@@ -93,10 +93,11 @@ function TravelLayout({ children }: { children: React.ReactNode }) {
       </Box>
       <Box sx={{ flexGrow: 1 }} />
       <Divider />
-      <ListItemButton onClick={toggleTheme} sx={{ borderRadius: 0 }}>
-        <ListItemIcon>{mode === 'dark' ? <LightMode /> : <DarkMode />}</ListItemIcon>
-        <ListItemText primary={mode === 'dark' ? t('theme.light') : t('theme.dark')} />
-      </ListItemButton>
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 1 }}>
+        <IconButton onClick={toggleTheme} size="small">
+          {mode === 'dark' ? <LightMode /> : <DarkMode />}
+        </IconButton>
+      </Box>
     </Box>
   )
 

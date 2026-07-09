@@ -11,6 +11,7 @@ import {
 import { Add, Edit, Delete, Image } from '@mui/icons-material'
 import { useT } from '@/lib/i18n/LanguageContext'
 import { appUrl } from '@/lib/utils'
+import ImageLightbox from '@/components/ImageLightbox'
 
 export default function ExpensesPage() {
   const params = useParams()
@@ -24,6 +25,7 @@ export default function ExpensesPage() {
   const [deleteTarget, setDeleteTarget] = useState<any>(null)
   const [currencyFilter, setCurrencyFilter] = useState('all')
   const [confirmedFilter, setConfirmedFilter] = useState('all')
+  const [lightboxSrc, setLightboxSrc] = useState('')
 
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -163,7 +165,11 @@ export default function ExpensesPage() {
                           <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
                             <Typography>{exp.description || t('misc.noDescription')}</Typography>
                             {!exp.confirmed && <Chip label={t('expense.statusUnconfirmed')} size="small" color="warning" variant="outlined" />}
-                            {exp.imageUrl && <Image fontSize="small" color="action" />}
+                            {exp.imageUrl && (
+                              <Image fontSize="small" color="action"
+                                sx={{ cursor: 'pointer' }}
+                                onClick={(e) => { e.stopPropagation(); setLightboxSrc(appUrl(exp.imageUrl)) }} />
+                            )}
                           </Box>
                         }
                         secondary={
@@ -209,7 +215,13 @@ export default function ExpensesPage() {
                     </ListItem>
                     {exp.imageUrl && (
                       <Box sx={{ px: 2, pb: 1 }}>
-                        <img src={appUrl(exp.imageUrl)} alt="Expense" style={{ maxHeight: 150, borderRadius: 4 }} />
+                        <Box
+                          component="img"
+                          src={appUrl(exp.imageUrl)}
+                          alt="Expense"
+                          onClick={() => setLightboxSrc(appUrl(exp.imageUrl))}
+                          sx={{ maxHeight: 150, borderRadius: 1, cursor: 'pointer', '&:hover': { opacity: 0.85 } }}
+                        />
                       </Box>
                     )}
                   </Card>
@@ -226,6 +238,8 @@ export default function ExpensesPage() {
         onClick={() => router.push(`/${prefix}/expenses/new`)}>
         <Add />
       </Fab>
+
+      <ImageLightbox open={!!lightboxSrc} src={lightboxSrc} onClose={() => setLightboxSrc('')} />
 
       <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
         <DialogTitle>{t('expense.deleteConfirm')}</DialogTitle>

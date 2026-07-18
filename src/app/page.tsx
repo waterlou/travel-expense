@@ -19,7 +19,7 @@ import {
 import {
   Add, Logout, TravelExplore, Google, Apple, Phone,
   ChevronRight, Menu as MenuIcon,
-  DarkMode, LightMode, Person,
+  DarkMode, LightMode, Person, PersonAdd,
 } from '@mui/icons-material'
 import { SessionProvider } from 'next-auth/react'
 
@@ -148,11 +148,12 @@ function HomePage() {
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <Typography variant="h5">{t('travel.yourTravels')}</Typography>
           <Box>
-            <Button variant="outlined" startIcon={<Add />} onClick={() => setJoinDialog(true)} sx={{ mr: 1 }}>
+            <Button variant="outlined" startIcon={<PersonAdd />} onClick={() => setJoinDialog(true)} sx={{ mr: 1 }}>
               {t('travel.join')}
             </Button>
             <Button variant="contained" startIcon={<Add />} onClick={() => setCreateOpen(true)}>
-              {t('travel.newTravel')}
+              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>{t('travel.newTravel')}</Box>
+              <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>{t('travel.newTravelMobile')}</Box>
             </Button>
           </Box>
         </Box>

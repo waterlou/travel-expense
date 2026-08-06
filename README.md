@@ -107,7 +107,6 @@ Notes:
 
 ## Deployment Guides
 
-- [Deploy to app.waterworld.com.hk (ocloud2)](docs/deploy-ocloud2.md) — the production target: nginx subpath reverse proxy + systemd + `next start`
 - [Deploy to Fly.io (SQLite)](docs/deploy-fly-io.md)
 - [Deploy to Render (PostgreSQL)](docs/deploy-render.md)
 

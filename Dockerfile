@@ -11,6 +11,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate
+ARG NEXT_PUBLIC_SINGLE_USER_MODE
+ENV NEXT_PUBLIC_SINGLE_USER_MODE=$NEXT_PUBLIC_SINGLE_USER_MODE
 RUN npm run build
 RUN npm ci --ignore-scripts --omit=dev
 

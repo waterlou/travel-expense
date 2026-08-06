@@ -18,6 +18,7 @@ import { signOut } from 'next-auth/react'
 import { useThemeMode } from '@/lib/ThemeContext'
 import { useT } from '@/lib/i18n/LanguageContext'
 import { appUrl } from '@/lib/utils'
+import { isSingleUserMode, SINGLE_USER_NAME } from '@/lib/single-user'
 
 function TravelLayout({ children }: { children: React.ReactNode }) {
   const params = useParams()
@@ -31,12 +32,13 @@ function TravelLayout({ children }: { children: React.ReactNode }) {
   const { mode, toggleTheme } = useThemeMode()
   const { t } = useT()
   const bp = typeof process !== 'undefined' ? process.env.BASE_PATH : ''
+  const singleUser = isSingleUserMode()
   const prefix = params?.prefix as string
 
   const navItems = [
     { label: t('nav.dashboard'), icon: <Dashboard />, path: '' },
     { label: t('nav.expenses'), icon: <Receipt />, path: '/expenses' },
-    { label: t('nav.members'), icon: <People />, path: '/members' },
+    ...(singleUser ? [] : [{ label: t('nav.members'), icon: <People />, path: '/members' }]),
     { label: t('nav.balance'), icon: <AccountBalance />, path: '/balance' },
     { label: t('nav.settings'), icon: <Settings />, path: '/settings' },
   ]
@@ -131,20 +133,28 @@ function TravelLayout({ children }: { children: React.ReactNode }) {
           <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>
             {travel.name}
           </Typography>
-          <IconButton color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)}>
+          {singleUser ? (
             <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
-              {session?.user?.name?.[0] || '?'}
+              {SINGLE_USER_NAME[0]}
             </Avatar>
-          </IconButton>
-          <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
-            <MenuItem disabled>
-              <Person sx={{ mr: 1 }} /> {session?.user?.email}
-            </MenuItem>
-            <Divider />
-            <MenuItem onClick={() => signOut({ callbackUrl: bp || '/' })}>
-              <Logout sx={{ mr: 1 }} /> {t('nav.signOut')}
-            </MenuItem>
-          </Menu>
+          ) : (
+            <>
+              <IconButton color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)}>
+                <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
+                  {session?.user?.name?.[0] || '?'}
+                </Avatar>
+              </IconButton>
+              <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
+                <MenuItem disabled>
+                  <Person sx={{ mr: 1 }} /> {session?.user?.email}
+                </MenuItem>
+                <Divider />
+                <MenuItem onClick={() => signOut({ callbackUrl: bp || '/' })}>
+                  <Logout sx={{ mr: 1 }} /> {t('nav.signOut')}
+                </MenuItem>
+              </Menu>
+            </>
+          )}
         </Toolbar>
       </AppBar>
 

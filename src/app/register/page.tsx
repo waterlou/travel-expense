@@ -63,7 +63,7 @@ function RegisterContent() {
           </CardContent>
         </Card>
       </Box>
-      <PhoneSignIn open={phoneOpen} onClose={() => setPhoneOpen(false)} callbackUrl={bp || '/'} />
+      <PhoneSignIn open={phoneOpen} onClose={() => setPhoneOpen(false)} callbackUrl="/" />
     </Container>
   )
 }

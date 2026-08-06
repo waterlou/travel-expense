@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getSessionUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { uniqueSlug } from '@/lib/utils'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ travelId: string }> }) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { travelId } = await params
   const travel = await prisma.travel.findFirst({
@@ -25,15 +24,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ trav
 
   if (!travel) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const isMember = travel.members.some(m => m.userId === (session.user as any).id)
+  const isMember = travel.members.some(m => m.userId === user.id)
   if (!isMember) return NextResponse.json({ error: 'Not a member' }, { status: 403 })
 
   return NextResponse.json({ travel })
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ travelId: string }> }) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { travelId } = await params
   const travel = await prisma.travel.findFirst({
@@ -44,7 +43,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ trav
   })
   if (!travel) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const member = travel.members.find(m => m.userId === (session.user as any).id)
+  const member = travel.members.find(m => m.userId === user.id)
   if (!member?.isAdmin) return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
 
   try {
@@ -79,8 +78,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ trav
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ travelId: string }> }) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { travelId } = await params
   const travel = await prisma.travel.findFirst({
@@ -91,9 +90,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ t
   })
   if (!travel) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const member = travel.members.find(m => m.userId === (session.user as any).id)
+  const member = travel.members.find(m => m.userId === user.id)
   if (!member?.isAdmin) return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
 
+  // SQLite FK cascade trips on ExpenseSplit->TravelMember; remove expenses
+  // (and their splits) first, then let the travel delete cascade the rest.
+  await prisma.expense.deleteMany({ where: { travelId: travel.id } })
   await prisma.travel.delete({ where: { id: travel.id } })
   return NextResponse.json({ success: true })
 }

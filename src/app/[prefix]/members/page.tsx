@@ -11,6 +11,7 @@ import {
 import { Person, ContentCopy, Share, Add, Edit, Delete, GroupWork } from '@mui/icons-material'
 import { useT } from '@/lib/i18n/LanguageContext'
 import { appUrl } from '@/lib/utils'
+import { isSingleUserMode } from '@/lib/single-user'
 
 export default function MembersPage() {
   const params = useParams()
@@ -18,6 +19,8 @@ export default function MembersPage() {
   const { data: session } = useSession()
   const { t } = useT()
   const prefix = params?.prefix as string
+  const singleUser = isSingleUserMode()
+  const bp = typeof process !== 'undefined' ? process.env.BASE_PATH : ''
   const [travel, setTravel] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [inviteDialog, setInviteDialog] = useState(false)
@@ -25,6 +28,10 @@ export default function MembersPage() {
   const [inviteLink, setInviteLink] = useState('')
   const [inviteMulti, setInviteMulti] = useState(false)
   const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    if (singleUser) router.replace(`/${prefix}`)
+  }, [singleUser, prefix])
 
   // Invites state
   const [invites, setInvites] = useState<any[]>([])
@@ -73,7 +80,7 @@ export default function MembersPage() {
     const data = await res.json()
     if (data.code) {
       setInviteCode(data.code)
-      setInviteLink(`${window.location.origin}/invite?code=${data.code}`)
+      setInviteLink(`${window.location.origin}${bp}/invite?code=${data.code}`)
     }
     loadInvites()
   }
@@ -139,6 +146,7 @@ export default function MembersPage() {
 
   if (loading) return <Box textAlign="center" py={4}><CircularProgress /></Box>
   if (!travel) return <Typography>{t('common.notFound')}</Typography>
+  if (singleUser) return null
 
   return (
     <Container maxWidth="md" sx={{ mt: 3, mb: 3 }}>

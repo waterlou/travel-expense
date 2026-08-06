@@ -12,6 +12,7 @@ import { Add, Edit, Delete, Image } from '@mui/icons-material'
 import { useT } from '@/lib/i18n/LanguageContext'
 import { appUrl } from '@/lib/utils'
 import ImageLightbox from '@/components/ImageLightbox'
+import { resolveCurrentMember } from '@/lib/single-user'
 
 export default function ExpensesPage() {
   const params = useParams()
@@ -58,7 +59,7 @@ export default function ExpensesPage() {
   if (loading) return <Box textAlign="center" py={4}><CircularProgress /></Box>
   if (!travel) return <Typography>{t('common.notFound')}</Typography>
 
-  const currentUser = travel.members?.find((m: any) => m.userId === (session?.user as any)?.id)
+  const currentUser = resolveCurrentMember(travel.members, (session?.user as any)?.id)
   const isAdmin = currentUser?.isAdmin
   const permission = travel.expensePermission
 

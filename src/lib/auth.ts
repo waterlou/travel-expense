@@ -3,8 +3,10 @@ import GoogleProvider from 'next-auth/providers/google'
 import AppleProvider from 'next-auth/providers/apple'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import jwt from 'jsonwebtoken'
+import { getServerSession } from 'next-auth'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from './prisma'
+import { isSingleUserMode, SINGLE_USER_ID, SINGLE_USER_NAME } from './single-user'
 
 const bp = process.env.BASE_PATH || ''
 const cookiePath = `${bp}/api/auth`
@@ -147,4 +149,23 @@ if (appleClientId && appleTeamId && appleKeyId && applePrivateKey) {
       clientSecret: secret,
     })
   )
+}
+
+export async function getSessionUser(): Promise<{ id: string; name?: string | null; email?: string | null } | null> {
+  if (isSingleUserMode()) {
+    // TravelMember.userId is a FK to User.id; make the fixed identity a real row.
+    await prisma.user.upsert({
+      where: { id: SINGLE_USER_ID },
+      create: { id: SINGLE_USER_ID, name: SINGLE_USER_NAME, emailVerified: new Date() },
+      update: {},
+    })
+    return { id: SINGLE_USER_ID, name: SINGLE_USER_NAME, email: null }
+  }
+  const session = await getServerSession(authOptions)
+  const user = session?.user
+  if (!user) return null
+  // The jwt/session callbacks attach the provider user id at runtime; the
+  // next-auth types don't carry it.
+  const withId = user as unknown as { id?: string }
+  return { id: withId.id ?? '', name: user.name, email: user.email }
 }

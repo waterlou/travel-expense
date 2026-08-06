@@ -14,12 +14,14 @@ import { ArrowBack, Calculate, Add } from '@mui/icons-material'
 import { useT } from '@/lib/i18n/LanguageContext'
 import { appUrl } from '@/lib/utils'
 import ImageLightbox from '@/components/ImageLightbox'
+import { isSingleUserMode } from '@/lib/single-user'
 
 export default function EditExpensePage() {
   const params = useParams()
   const router = useRouter()
   const { data: session } = useSession()
   const { t } = useT()
+  const singleUser = isSingleUserMode()
   const prefix = params?.prefix as string
   const expenseId = params?.id as string
   const [travel, setTravel] = useState<any>(null)
@@ -189,85 +191,93 @@ export default function EditExpensePage() {
                 </IconButton>
               </Box>
             </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <FormControl fullWidth>
-                <InputLabel>{t('expense.paidBy')}</InputLabel>
-                <Select value={form.paidById} label={t('expense.paidBy')}
-                  onChange={e => setForm({ ...form, paidById: e.target.value })}>
-                  {[...members].sort((a: any, b: any) => a.id.localeCompare(b.id)).map((m: any) => <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>)}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid size={12}>
-              {extraPayers.map((ep, i) => (
-                <Box key={i} display="flex" alignItems="center" gap={1} mb={1}>
-                  <FormControl size="small" sx={{ minWidth: 140 }}>
-                    <Select value={ep.memberId}
+            {!singleUser && (
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <FormControl fullWidth>
+                  <InputLabel>{t('expense.paidBy')}</InputLabel>
+                  <Select value={form.paidById} label={t('expense.paidBy')}
+                    onChange={e => setForm({ ...form, paidById: e.target.value })}>
+                    {[...members].sort((a: any, b: any) => a.id.localeCompare(b.id)).map((m: any) => <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>)}
+                  </Select>
+                </FormControl>
+              </Grid>
+            )}
+            {!singleUser && (
+              <Grid size={12}>
+                {extraPayers.map((ep, i) => (
+                  <Box key={i} display="flex" alignItems="center" gap={1} mb={1}>
+                    <FormControl size="small" sx={{ minWidth: 140 }}>
+                      <Select value={ep.memberId}
+                        onChange={e => {
+                          const updated = [...extraPayers]
+                          updated[i] = { ...updated[i], memberId: e.target.value }
+                          setExtraPayers(updated)
+                        }}>
+                        {members.filter((m: any) => m.id !== form.paidById).map((m: any) => (
+                          <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <TextField size="small" type="number" label={t('expense.amount')} value={ep.amount}
                       onChange={e => {
                         const updated = [...extraPayers]
-                        updated[i] = { ...updated[i], memberId: e.target.value }
+                        updated[i] = { ...updated[i], amount: e.target.value }
                         setExtraPayers(updated)
-                      }}>
-                      {members.filter((m: any) => m.id !== form.paidById).map((m: any) => (
-                        <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                  <TextField size="small" type="number" label={t('expense.amount')} value={ep.amount}
-                    onChange={e => {
-                      const updated = [...extraPayers]
-                      updated[i] = { ...updated[i], amount: e.target.value }
-                      setExtraPayers(updated)
-                    }} />
-                  <IconButton size="small" onClick={() => setExtraPayers(extraPayers.filter((_, j) => j !== i))}>
-                    <Typography color="error">×</Typography>
-                  </IconButton>
-                </Box>
-              ))}
-              <Button size="small"
-                onClick={() => setExtraPayers([...extraPayers, { memberId: '', amount: '' }])}>
-                {t('expense.addCoPayer')}
-              </Button>
-              {extraPayers.some(ep => ep.memberId && ep.amount) && form.amount && (
-                <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
-                  {t('expense.coPayersPay')} <strong>{extraPayers.reduce((s, ep) => s + (parseFloat(ep.amount) || 0), 0).toFixed(2)}</strong>,
-                  <strong> {members.find((m: any) => m.id === form.paidById)?.name || 'selected'}</strong> {t('expense.mainPayerPays')}{' '}
-                  <strong>{(parseFloat(form.amount) - extraPayers.reduce((s, ep) => s + (parseFloat(ep.amount) || 0), 0)).toFixed(2)}</strong>
-                </Typography>
-              )}
-            </Grid>
-            <Grid size={12}>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                {t('expense.splitAmong')}
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {[...members].sort((a: any, b: any) => a.id.localeCompare(b.id)).map((m: any) => (
-                  <Chip key={m.id} label={m.name} size="small"
-                    variant={splitMemberIds.includes(m.id) ? 'filled' : 'outlined'}
-                    color={splitMemberIds.includes(m.id) ? 'primary' : 'default'}
-                    onClick={() => {
-                      if (splitMemberIds.includes(m.id)) {
-                        setSplitMemberIds(splitMemberIds.filter(id => id !== m.id))
-                      } else {
-                        setSplitMemberIds([...splitMemberIds, m.id])
-                      }
-                    }} />
+                      }} />
+                    <IconButton size="small" onClick={() => setExtraPayers(extraPayers.filter((_, j) => j !== i))}>
+                      <Typography color="error">×</Typography>
+                    </IconButton>
+                  </Box>
                 ))}
-              </Box>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <FormControl fullWidth>
-                <InputLabel>{t('expense.splitType')}</InputLabel>
-                <Select value={form.splitType} label={t('expense.splitType')}
-                  onChange={e => {
-                    setForm({ ...form, splitType: e.target.value })
-                    if (e.target.value === 'equal') setSplits({})
-                  }}>
-                  <MenuItem value="equal">{t('expense.splitEqually')}</MenuItem>
-                  <MenuItem value="manual">{t('expense.manualSplit')}</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
+                <Button size="small"
+                  onClick={() => setExtraPayers([...extraPayers, { memberId: '', amount: '' }])}>
+                  {t('expense.addCoPayer')}
+                </Button>
+                {extraPayers.some(ep => ep.memberId && ep.amount) && form.amount && (
+                  <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+                    {t('expense.coPayersPay')} <strong>{extraPayers.reduce((s, ep) => s + (parseFloat(ep.amount) || 0), 0).toFixed(2)}</strong>,
+                    <strong> {members.find((m: any) => m.id === form.paidById)?.name || 'selected'}</strong> {t('expense.mainPayerPays')}{' '}
+                    <strong>{(parseFloat(form.amount) - extraPayers.reduce((s, ep) => s + (parseFloat(ep.amount) || 0), 0)).toFixed(2)}</strong>
+                  </Typography>
+                )}
+              </Grid>
+            )}
+            {!singleUser && (
+              <Grid size={12}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  {t('expense.splitAmong')}
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                  {[...members].sort((a: any, b: any) => a.id.localeCompare(b.id)).map((m: any) => (
+                    <Chip key={m.id} label={m.name} size="small"
+                      variant={splitMemberIds.includes(m.id) ? 'filled' : 'outlined'}
+                      color={splitMemberIds.includes(m.id) ? 'primary' : 'default'}
+                      onClick={() => {
+                        if (splitMemberIds.includes(m.id)) {
+                          setSplitMemberIds(splitMemberIds.filter(id => id !== m.id))
+                        } else {
+                          setSplitMemberIds([...splitMemberIds, m.id])
+                        }
+                      }} />
+                  ))}
+                </Box>
+              </Grid>
+            )}
+            {!singleUser && (
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <FormControl fullWidth>
+                  <InputLabel>{t('expense.splitType')}</InputLabel>
+                  <Select value={form.splitType} label={t('expense.splitType')}
+                    onChange={e => {
+                      setForm({ ...form, splitType: e.target.value })
+                      if (e.target.value === 'equal') setSplits({})
+                    }}>
+                    <MenuItem value="equal">{t('expense.splitEqually')}</MenuItem>
+                    <MenuItem value="manual">{t('expense.manualSplit')}</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            )}
             {form.splitType === 'manual' && (
               <Grid size={12}>
                 <Typography variant="body2" color="text.secondary" gutterBottom>

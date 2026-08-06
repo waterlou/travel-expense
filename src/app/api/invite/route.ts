@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getSessionUser } from '@/lib/auth'
+import { isSingleUserMode } from '@/lib/single-user'
 import { prisma } from '@/lib/prisma'
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (isSingleUserMode()) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   try {
     const body = await req.json()
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
     if (invite.expiresAt < new Date()) return NextResponse.json({ error: 'Code expired' }, { status: 400 })
     if (!invite.multiUse && invite.usageCount >= 1) return NextResponse.json({ error: 'Code already used' }, { status: 400 })
 
-    const currentUserId = (session.user as any).id
+    const currentUserId = user.id
 
     // Check if user is already a member
     const existingMember = await prisma.travelMember.findFirst({
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Creating new members is not allowed for this travel' }, { status: 403 })
       }
       await prisma.travelMember.create({
-        data: { travelId: invite.travelId, userId: currentUserId, name: session.user.name || 'Member', isAdmin: false },
+        data: { travelId: invite.travelId, userId: currentUserId, name: user.name || 'Member', isAdmin: false },
       })
       await prisma.invitation.update({
         where: { id: invite.id },

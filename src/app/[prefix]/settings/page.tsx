@@ -12,6 +12,7 @@ import {
 import { ArrowBack } from '@mui/icons-material'
 import { useT } from '@/lib/i18n/LanguageContext'
 import { appUrl } from '@/lib/utils'
+import { isSingleUserMode, resolveCurrentMember } from '@/lib/single-user'
 
 export default function SettingsPage() {
   const params = useParams()
@@ -83,7 +84,7 @@ export default function SettingsPage() {
     router.push('/')
   }
 
-  const currentUser = travel?.members?.find((m: any) => m.userId === (session?.user as any)?.id)
+  const currentUser = resolveCurrentMember(travel?.members, (session?.user as any)?.id)
   const isAdmin = currentUser?.isAdmin
 
   if (loading) return <Box textAlign="center" py={4}><CircularProgress /></Box>
@@ -125,25 +126,29 @@ export default function SettingsPage() {
                   setSelectedCurrencies(prev => prev.filter(c => c !== v))
                 }} />
             </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <FormControl fullWidth>
-                <InputLabel>{t('travel.expensePermission')}</InputLabel>
-                <Select value={form.expensePermission} label={t('travel.expensePermission')}
-                  onChange={e => setForm({ ...form, expensePermission: Number(e.target.value) })}>
-                  <MenuItem value={1}>{t('travel.permission1')}</MenuItem>
-                  <MenuItem value={2}>{t('travel.permission2')}</MenuItem>
-                  <MenuItem value={3}>{t('travel.permission3')}</MenuItem>
-                  <MenuItem value={4}>{t('travel.permission4')}</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
+            {!isSingleUserMode() && (
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <FormControl fullWidth>
+                  <InputLabel>{t('travel.expensePermission')}</InputLabel>
+                  <Select value={form.expensePermission} label={t('travel.expensePermission')}
+                    onChange={e => setForm({ ...form, expensePermission: Number(e.target.value) })}>
+                    <MenuItem value={1}>{t('travel.permission1')}</MenuItem>
+                    <MenuItem value={2}>{t('travel.permission2')}</MenuItem>
+                    <MenuItem value={3}>{t('travel.permission3')}</MenuItem>
+                    <MenuItem value={4}>{t('travel.permission4')}</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            )}
           </Grid>
 
-          <FormControlLabel
-            control={<Switch checked={form.allowMemberCreate} onChange={e => setForm({ ...form, allowMemberCreate: e.target.checked })} />}
-            label="Allow invited users to create their own member entry"
-            sx={{ mt: 2, mb: 0 }}
-          />
+          {!isSingleUserMode() && (
+            <FormControlLabel
+              control={<Switch checked={form.allowMemberCreate} onChange={e => setForm({ ...form, allowMemberCreate: e.target.checked })} />}
+              label="Allow invited users to create their own member entry"
+              sx={{ mt: 2, mb: 0 }}
+            />
+          )}
 
           <Box mt={2}>
             <Typography variant="body2" color="text.secondary" gutterBottom>

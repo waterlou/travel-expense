@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useThemeMode } from '@/lib/ThemeContext'
 import { useT } from '@/lib/i18n/LanguageContext'
 import { appUrl } from '@/lib/utils'
+import { isSingleUserMode, SINGLE_USER_NAME } from '@/lib/single-user'
 
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import DateRangeSelector from '@/components/DateRangeSelector'
@@ -26,6 +27,7 @@ import { SessionProvider } from 'next-auth/react'
 function HomePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const singleUser = isSingleUserMode()
   const { mode, toggleTheme } = useThemeMode()
   const { t } = useT()
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
@@ -53,16 +55,16 @@ function HomePage() {
   }, [])
 
   useEffect(() => {
-    if (status === 'unauthenticated') return
-    if (status === 'authenticated') {
+    if (!singleUser && status === 'unauthenticated') return
+    if (singleUser || status === 'authenticated') {
       fetch(appUrl('/api/travels')).then(r => r.json()).then(data => {
         setTravels(data.travels || [])
         setLoading(false)
       }).catch(() => setLoading(false))
     }
-  }, [status])
+  }, [status]) // eslint-disable-line react-hooks/exhaustive-deps (singleUser is constant)
 
-  if (status === 'loading') {
+  if (!singleUser && status === 'loading') {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
         <CircularProgress />
@@ -70,7 +72,7 @@ function HomePage() {
     )
   }
 
-  if (status === 'unauthenticated') {
+  if (!singleUser && status === 'unauthenticated') {
     return (
       <>
         <AppBar position="static">
@@ -128,29 +130,39 @@ function HomePage() {
           <IconButton color="inherit" onClick={toggleTheme} sx={{ mr: 1 }}>
             {mode === 'dark' ? <LightMode /> : <DarkMode />}
           </IconButton>
-          <IconButton color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)}>
+          {singleUser ? (
             <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
-              {session?.user?.name?.[0] || '?'}
+              {SINGLE_USER_NAME[0]}
             </Avatar>
-          </IconButton>
-          <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
-            <MenuItem disabled>
-              <Person sx={{ mr: 1 }} /> {session?.user?.email}
-            </MenuItem>
-            <Divider />
-            <MenuItem onClick={() => signOut({ callbackUrl: (typeof process !== 'undefined' ? process.env.BASE_PATH : '') || '/' })}>
-              <Logout sx={{ mr: 1 }} /> {t('auth.signOut')}
-            </MenuItem>
-          </Menu>
+          ) : (
+            <>
+              <IconButton color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)}>
+                <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
+                  {session?.user?.name?.[0] || '?'}
+                </Avatar>
+              </IconButton>
+              <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
+                <MenuItem disabled>
+                  <Person sx={{ mr: 1 }} /> {session?.user?.email}
+                </MenuItem>
+                <Divider />
+                <MenuItem onClick={() => signOut({ callbackUrl: (typeof process !== 'undefined' ? process.env.BASE_PATH : '') || '/' })}>
+                  <Logout sx={{ mr: 1 }} /> {t('auth.signOut')}
+                </MenuItem>
+              </Menu>
+            </>
+          )}
         </Toolbar>
       </AppBar>
       <Container maxWidth="md" sx={{ mt: 4, pb: 4 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <Typography variant="h5">{t('travel.yourTravels')}</Typography>
           <Box>
-            <Button variant="outlined" startIcon={<PersonAdd />} onClick={() => setJoinDialog(true)} sx={{ mr: 1 }}>
-              {t('travel.join')}
-            </Button>
+            {!singleUser && (
+              <Button variant="outlined" startIcon={<PersonAdd />} onClick={() => setJoinDialog(true)} sx={{ mr: 1 }}>
+                {t('travel.join')}
+              </Button>
+            )}
             <Button variant="contained" startIcon={<Add />} onClick={() => setCreateOpen(true)}>
               <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>{t('travel.newTravel')}</Box>
               <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>{t('travel.newTravelMobile')}</Box>
@@ -177,7 +189,7 @@ function HomePage() {
                 <ListItem component="div" onClick={() => router.push(`/${travel.prefix}`)} sx={{ cursor: 'pointer' }}>
                   <ListItemText
                     primary={travel.name}
-                    secondary={`${travel.members?.length || 0} members · ${travel.mainCurrency}`}
+                    secondary={`${singleUser ? '' : `${travel.members?.length || 0} members · `}${travel.mainCurrency}`}
                   />
                   <ChevronRight />
                 </ListItem>
@@ -227,6 +239,7 @@ function CreateTravelDialog({
     try {
       const body = {
         ...form,
+        expensePermission: form.permissions,
         startDate: form.startDate?.format?.('YYYY-MM-DD') || '',
         endDate: form.endDate?.format?.('YYYY-MM-DD') || '',
         currencies: selectedCurrencies,
@@ -292,30 +305,35 @@ function CreateTravelDialog({
             </Box>
           </Box>
 
-          <Box>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              {t('travel.expensePermission')}
-            </Typography>
-            <TextField select fullWidth value={form.permissions}
-              onChange={e => setForm({ ...form, permissions: Number(e.target.value) })}
-              SelectProps={{ native: true }}>
-              <option value={1}>{t('travel.permission1')}</option>
-              <option value={2}>{t('travel.permission2')}</option>
-              <option value={3}>{t('travel.permission3')}</option>
-              <option value={4}>{t('travel.permission4')}</option>
-            </TextField>
-          </Box>
+          {!isSingleUserMode() && (
+            <Box>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                {t('travel.expensePermission')}
+              </Typography>
+              <TextField select fullWidth value={form.permissions}
+                onChange={e => setForm({ ...form, permissions: Number(e.target.value) })}
+                SelectProps={{ native: true }}>
+                <option value={1}>{t('travel.permission1')}</option>
+                <option value={2}>{t('travel.permission2')}</option>
+                <option value={3}>{t('travel.permission3')}</option>
+                <option value={4}>{t('travel.permission4')}</option>
+              </TextField>
+            </Box>
+          )}
 
-          <FormControlLabel
-            control={<Switch checked={form.allowMemberCreate} onChange={e => setForm({ ...form, allowMemberCreate: e.target.checked })} />}
-            label="Allow invited users to create their own member entry"
-          />
+          {!isSingleUserMode() && (
+            <FormControlLabel
+              control={<Switch checked={form.allowMemberCreate} onChange={e => setForm({ ...form, allowMemberCreate: e.target.checked })} />}
+              label="Allow invited users to create their own member entry"
+            />
+          )}
 
-          <Box>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              {t('travel.travelMembers')}
-            </Typography>
-            <Box ref={membersRef}>
+          {!isSingleUserMode() && (
+            <Box>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                {t('travel.travelMembers')}
+              </Typography>
+              <Box ref={membersRef}>
             {form.members.map((m: any, i: number) => (
               <Box key={i} sx={{ display: 'flex', gap: 1, mb: 1 }}>
                 <TextField size="small" label={t('common.name')} fullWidth value={m.name}
@@ -349,7 +367,8 @@ function CreateTravelDialog({
               }}>{t('travel.addMember')}</Button>
             )}
             </Box>
-          </Box>
+            </Box>
+          )}
         </Box>
       </DialogContent>
       <DialogActions>

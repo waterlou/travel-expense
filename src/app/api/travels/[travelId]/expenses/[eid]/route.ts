@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getSessionUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { canEditExpense, canDeleteExpense } from '@/lib/utils'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ travelId: string; eid: string }> }) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { travelId, eid } = await params
   const travel = await prisma.travel.findFirst({
@@ -30,8 +29,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ trav
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ travelId: string; eid: string }> }) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { travelId, eid } = await params
   const travel = await prisma.travel.findFirst({
@@ -47,7 +46,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ trav
   })
   if (!expense) return NextResponse.json({ error: 'Expense not found' }, { status: 404 })
 
-  const member = travel.members.find(m => m.userId === (session.user as any).id)
+  const member = travel.members.find(m => m.userId === user.id)
   if (!member) return NextResponse.json({ error: 'Not a member' }, { status: 403 })
 
   const isCreator = expense.paidById === member.id
@@ -93,8 +92,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ trav
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ travelId: string; eid: string }> }) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { travelId, eid } = await params
   const travel = await prisma.travel.findFirst({
@@ -110,7 +109,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ t
   })
   if (!expense) return NextResponse.json({ error: 'Expense not found' }, { status: 404 })
 
-  const member = travel.members.find(m => m.userId === (session.user as any).id)
+  const member = travel.members.find(m => m.userId === user.id)
   if (!member) return NextResponse.json({ error: 'Not a member' }, { status: 403 })
 
   const isCreator = expense.paidById === member.id

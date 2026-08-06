@@ -4,6 +4,7 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, T
 import { Phone } from '@mui/icons-material'
 import { getFirebaseAuth, RecaptchaVerifier, signInWithPhoneNumber } from '@/lib/firebase'
 import { signIn } from 'next-auth/react'
+import { appUrl } from '@/lib/utils'
 
 interface Props {
   open: boolean
@@ -69,7 +70,7 @@ export default function PhoneSignIn({ open, onClose, callbackUrl }: Props) {
 
       if (res?.error) throw new Error(res.error)
       onClose()
-      window.location.href = callbackUrl || '/'
+      window.location.href = appUrl(callbackUrl || '/')
     } catch (e: any) {
       setError(e.message || 'Invalid code')
     } finally {

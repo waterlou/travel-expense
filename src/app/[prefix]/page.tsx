@@ -9,6 +9,7 @@ import {
 import { Receipt, People, AccountBalance, CurrencyExchange, Add } from '@mui/icons-material'
 import { useT } from '@/lib/i18n/LanguageContext'
 import { appUrl } from '@/lib/utils'
+import { isSingleUserMode } from '@/lib/single-user'
 
 export default function DashboardPage() {
   const params = useParams()
@@ -55,17 +56,19 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center" gap={1} mb={1}>
-                <People color="primary" />
-                <Typography color="text.secondary">{t('member.members')}</Typography>
-              </Box>
-              <Typography variant="h4">{travel.members?.length || 0}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+        {!isSingleUserMode() && (
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card>
+              <CardContent>
+                <Box display="flex" alignItems="center" gap={1} mb={1}>
+                  <People color="primary" />
+                  <Typography color="text.secondary">{t('member.members')}</Typography>
+                </Box>
+                <Typography variant="h4">{travel.members?.length || 0}</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>

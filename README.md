@@ -49,6 +49,8 @@ cp .env.example .env
 # - NEXTAUTH_SECRET: run `openssl rand -base64 32`
 ```
 
+To serve the app under a subpath (e.g. `https://example.com/travel-expense`), set `BASE_PATH=/travel-expense` and make sure `NEXTAUTH_URL` includes it (`https://example.com/travel-expense/api/auth`). `BASE_PATH` is inlined at build time — changing it requires a rebuild.
+
 4. **Initialize database**
 
 ```bash
@@ -88,6 +90,26 @@ docker compose -f docker-compose.postgres.yml up -d
 # Run migrations
 docker compose -f docker-compose.postgres.yml exec app npx prisma migrate deploy
 ```
+
+## Single-User Mode
+
+Set `NEXT_PUBLIC_SINGLE_USER_MODE=true` in `.env` to turn the app into a personal expense tracker:
+
+- No login anywhere — the app opens straight into your travels
+- One fixed user (`Admin`) owns every travel; members/invites/groups UI and APIs are disabled
+- Auth pages (`/login`, `/register`, `/invite`) redirect home
+
+Notes:
+
+- The flag is inlined into the client bundle and middleware at build time — changing it requires a rebuild/restart.
+- Expect a **fresh database**: travels whose members are bound to other user ids (or unclaimed) don't appear in single-user mode.
+- With the flag empty/absent, full multi-user behavior is unchanged.
+
+## Deployment Guides
+
+- [Deploy to app.waterworld.com.hk (ocloud2)](docs/deploy-ocloud2.md) — the production target: nginx subpath reverse proxy + systemd + `next start`
+- [Deploy to Fly.io (SQLite)](docs/deploy-fly-io.md)
+- [Deploy to Render (PostgreSQL)](docs/deploy-render.md)
 
 ## Tech Stack
 

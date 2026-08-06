@@ -77,7 +77,12 @@ If I provide a domain, configure:
 
 If I want the app at `mydomain.com/travel-expense`, set `BASE_PATH=/travel-expense`.
 
-### 6. Verify
+### 6. Single-user mode (optional)
+
+If I want a personal expense tracker with no login, set `NEXT_PUBLIC_SINGLE_USER_MODE=true`
+(build-time inlined; expects a fresh database). Leave empty for full multi-user behavior.
+
+### 7. Verify
 
 After deployment, visit the URL and confirm:
 - Landing page loads

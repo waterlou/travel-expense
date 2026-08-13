@@ -16,6 +16,7 @@ A web-based travel expense tracking app that you can self-host. Track shared exp
 - **Mobile Friendly** — Responsive MUI design with bottom navigation
 - **Custom Prefix** — Embed at `yoursite.com/travel/mytrip`
 - **Google Auth** — Sign in with Google
+- **AI Agent API Keys** — Create account-scoped API keys; AI agents drive the REST API with a Bearer key, guided by a built-in skills file
 
 ## Quick Start
 
@@ -105,7 +106,35 @@ Notes:
 - Expect a **fresh database**: travels whose members are bound to other user ids (or unclaimed) don't appear in single-user mode.
 - With the flag empty/absent, full multi-user behavior is unchanged.
 
+## AI Agent Access (API Keys)
+
+Every user can create API keys for their own account so AI agents can drive the app through the REST API with exactly that user's access rights.
+
+**Creating a key**
+
+1. Click the avatar menu (top-right corner, next to the theme toggle) — in single-user mode the avatar opens a menu too.
+2. Choose **API Keys**, then **Create key**, and give it a name.
+3. Copy the key from the dialog — it is shown only once. The server stores only a SHA-256 hash; revoke it any time from the same menu.
+
+Keys are account-scoped, not travel-scoped: one key can create/list travels and manage every travel the account belongs to. In multi-user mode each member manages their own keys.
+
+**Using a key from an agent**
+
+```bash
+curl -H "Authorization: Bearer te_..." https://your-host/api/me
+```
+
+- `GET /api/me` confirms identity and returns `skillsUrl`.
+- The agent-facing API guide is served at `<base>/ai/SKILL.md` (public, under `BASE_PATH` if set) — it documents every endpoint with request/response JSON, including multi-member trips (pre-register members at creation, then one invite code per person).
+- Key management (`/api/keys`) is session-authenticated only: requests authenticated with a key get 403 there, so a leaked agent key cannot mint or revoke keys.
+
 ## Deployment Guides
+
+Any production deployment must apply Prisma migrations after pulling new code (before starting `next start`, or in the container build command):
+
+```bash
+npx prisma migrate deploy
+```
 
 - [Deploy to Fly.io (SQLite)](docs/deploy-fly-io.md)
 - [Deploy to Render (PostgreSQL)](docs/deploy-render.md)

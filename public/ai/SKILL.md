@@ -11,7 +11,9 @@ All paths are relative to the site root including any path prefix; if the app is
 
 ## Auth
 
-Send `Authorization: Bearer te_...` on every request. Each user creates their own key in Settings → API Keys (shown once at creation). The key acts as that user, with exactly the same access rights. No session/login needed. Invalid or missing → 401 `{ "error": "Unauthorized" }`.
+Send `Authorization: Bearer te_...` on every request. Each user creates their own key in Settings → API Keys (shown once at creation). The key acts as that user, with exactly the same access rights. No session/login needed. An invalid key → 401 `{ "error": "Unauthorized" }`.
+
+Requests with **no** credentials at all are treated as unauthenticated browser requests: in multi-user mode the middleware redirects them to the sign-in page (HTTP 307, HTML), not a JSON 401. Always send a `Bearer` header to get JSON error responses.
 
 Key creation and revocation are NOT available over the API — they require the web UI (interactive session); an agent authenticated with a key receives 403 `{ "error": "Not allowed with API key" }` on `/api/keys`.
 
@@ -61,7 +63,7 @@ Body: `{ "name": string, "mainCurrency"?: string, "currencies"?: string[], "star
 { "travel": { "id": "...", "prefix": "my-trip", "name": "My Trip", "mainCurrency": "USD", "currencies": "[]", "members": [{ "id": "member-id", "name": "Admin", "isAdmin": true }] } }
 ```
 
-`name` is required. In single-user mode the travel gets exactly one member (the Admin); in multi-user mode the caller is the first member.
+`name` is required. In single-user mode the travel gets exactly one member (the Admin); in multi-user mode the caller is the first member. `mainCurrency` must be an ISO 4217 code; `currencies` an array of such codes (max 10); `startDate`/`endDate` valid `YYYY-MM-DD`; `expensePermission` an integer 1–4 — invalid values → 400.
 
 ### 4. `GET /api/travels/{idOrPrefix}`
 
@@ -107,7 +109,7 @@ Travel + all expenses + all rates in one round trip — preferred for agent cont
 
 ### 6. `PUT /api/travels/{idOrPrefix}`
 
-Admin only. Body fields (all optional): `name`, `startDate`, `endDate`, `mainCurrency`, `currencies` (string[]), `expensePermission` (1–4), `allowMemberCreate` (boolean). → `{ "travel": { ... } }`.
+Admin only. **Patch semantics**: only fields present in the body are updated; omitted fields keep their current values. Body fields (all optional): `name`, `startDate`, `endDate`, `mainCurrency`, `currencies` (string[]), `expensePermission` (1–4), `allowMemberCreate` (boolean). The `prefix` is never changed by an update — renaming does not break existing share links. → `{ "travel": { ... } }`. An empty body → 400.
 
 ### 7. `DELETE /api/travels/{idOrPrefix}`
 
@@ -124,6 +126,8 @@ Admin only. Permanently deletes the travel and everything in it. → `{ "success
 Body: `{ "date": "YYYY-MM-DD", "description"?: string, "amount": number, "currency"?: string, "paidById": memberId, "extraPayers"?: string[], "splitType"?: "equal" | "manual", "splitMemberIds"?: string[], "confirmed"?: boolean, "splits"?: { [memberId]: string | null }, "imageUrl"?: string }` → 201 `{ "expense": { ... } }`.
 
 `date`, `amount`, and `paidById` are required. `currency` defaults to the travel's `mainCurrency`. `paidById` must be a member id from the travel payload; invalid payer → 400. `splitMemberIds` defaults to all members. For manual splits, provide `splits` amounts (strings, e.g. `"21.25"`); equal splits leave them `null`.
+
+Validation (invalid → 400): `date` must be a real `YYYY-MM-DD`; `amount` must be a JSON number > 0 (0, negatives, and strings are rejected); `currency` an ISO 4217 code; `splitType` exactly `"equal"` or `"manual"`.
 
 ### 10. `GET /api/travels/{idOrPrefix}/expenses/{eid}`
 
@@ -143,7 +147,7 @@ Same fields as POST (replaces the expense and its splits). → `{ "expense": { .
 
 `GET` → `{ "rates": [{ "id": "...", "travelId": "...", "fromCurrency": "EUR", "toCurrency": "USD", "rate": 1.09, "updatedAt": "..." }] }`.
 
-`PUT` body: `{ "fromCurrency": "EUR", "rate": 1.09 }` — upserts the rate from `fromCurrency` to the travel's `mainCurrency`. → `{ "rate": { ... } }`.
+`PUT` body: `{ "fromCurrency": "EUR", "rate": 1.09 }` — upserts the rate from `fromCurrency` to the travel's `mainCurrency`. → `{ "rate": { ... } }`. `fromCurrency` must be an ISO 4217 code and cannot equal the travel's `mainCurrency`; `rate` a positive number — violations → 400.
 
 ### 14. `GET /api/travels/{idOrPrefix}/members`
 

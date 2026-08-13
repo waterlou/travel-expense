@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getRequestUser } from '@/lib/api-key'
 import { prisma } from '@/lib/prisma'
-import { uniqueSlug } from '@/lib/utils'
+import { uniqueSlug, isValidCurrency, isValidDate, isValidExpensePermission } from '@/lib/utils'
 import { isSingleUserMode, SINGLE_USER_ID, SINGLE_USER_NAME } from '@/lib/single-user'
 
 export async function GET(req: NextRequest) {
@@ -39,14 +39,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 })
     }
 
+    if (mainCurrency !== undefined && (typeof mainCurrency !== 'string' || !isValidCurrency(mainCurrency.toUpperCase()))) {
+      return NextResponse.json({ error: 'Invalid currency' }, { status: 400 })
+    }
+    if (currencies !== undefined) {
+      if (
+        !Array.isArray(currencies) ||
+        currencies.some((c: unknown) => typeof c !== 'string' || !isValidCurrency(c.toUpperCase()))
+      ) {
+        return NextResponse.json({ error: 'Invalid currencies' }, { status: 400 })
+      }
+      if (currencies.length > 10) {
+        return NextResponse.json({ error: 'Maximum 10 additional currencies' }, { status: 400 })
+      }
+    }
+    if (startDate != null && startDate !== '' && (typeof startDate !== 'string' || !isValidDate(startDate))) {
+      return NextResponse.json({ error: 'Invalid start date' }, { status: 400 })
+    }
+    if (endDate != null && endDate !== '' && (typeof endDate !== 'string' || !isValidDate(endDate))) {
+      return NextResponse.json({ error: 'Invalid end date' }, { status: 400 })
+    }
+    if (expensePermission !== undefined && !isValidExpensePermission(expensePermission)) {
+      return NextResponse.json({ error: 'expensePermission must be 1-4' }, { status: 400 })
+    }
+
     const prefix = await uniqueSlug(name, async (slug) => {
       const existing = await prisma.travel.findUnique({ where: { prefix: slug } })
       return !!existing
     })
-
-    if (currencies && currencies.length > 10) {
-      return NextResponse.json({ error: 'Maximum 10 additional currencies' }, { status: 400 })
-    }
 
     const currentUserId = user.id
 
@@ -54,8 +74,8 @@ export async function POST(req: NextRequest) {
       data: {
         name,
         prefix,
-        mainCurrency: mainCurrency || 'USD',
-        currencies: JSON.stringify((currencies || []).filter((c: string) => c !== mainCurrency)),
+        mainCurrency: (mainCurrency || 'USD').toUpperCase(),
+        currencies: JSON.stringify((currencies || []).map((c: string) => c.toUpperCase()).filter((c: string) => c !== (mainCurrency || 'USD').toUpperCase())),
         startDate: startDate || null,
         endDate: endDate || null,
         expensePermission: expensePermission || 1,

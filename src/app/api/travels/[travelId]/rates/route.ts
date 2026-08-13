@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getRequestUser } from '@/lib/api-key'
 import { prisma } from '@/lib/prisma'
+import { isValidCurrency } from '@/lib/utils'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ travelId: string }> }) {
   const { user } = await getRequestUser(req)
@@ -44,21 +45,30 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ trav
     if (!fromCurrency || rate == null) {
       return NextResponse.json({ error: 'Currency and rate required' }, { status: 400 })
     }
+    if (typeof fromCurrency !== 'string' || !isValidCurrency(fromCurrency.toUpperCase())) {
+      return NextResponse.json({ error: 'Invalid currency' }, { status: 400 })
+    }
+    if (fromCurrency.toUpperCase() === travel.mainCurrency) {
+      return NextResponse.json({ error: 'Cannot set a rate for the main currency' }, { status: 400 })
+    }
+    if (typeof rate !== 'number' || !Number.isFinite(rate) || rate <= 0) {
+      return NextResponse.json({ error: 'Rate must be a positive number' }, { status: 400 })
+    }
 
     const exchangeRate = await prisma.exchangeRate.upsert({
       where: {
         travelId_fromCurrency_toCurrency: {
           travelId: travel.id,
-          fromCurrency,
+          fromCurrency: fromCurrency.toUpperCase(),
           toCurrency: travel.mainCurrency,
         },
       },
-      update: { rate: parseFloat(rate) },
+      update: { rate },
       create: {
         travelId: travel.id,
-        fromCurrency,
+        fromCurrency: fromCurrency.toUpperCase(),
         toCurrency: travel.mainCurrency,
-        rate: parseFloat(rate),
+        rate,
       },
     })
 

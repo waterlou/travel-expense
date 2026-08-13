@@ -35,6 +35,25 @@ export function formatCurrency(amount: number, currency: string): string {
   }).format(amount)
 }
 
+// Strict YYYY-MM-DD calendar date (rejects 2026-02-30, 2026-13-99).
+export function isValidDate(s: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false
+  const [y, m, d] = s.split('-').map(Number)
+  const dt = new Date(Date.UTC(y, m - 1, d))
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d
+}
+
+// ISO 4217-shaped currency code: exactly three uppercase letters.
+export function isValidCurrency(c: string): boolean {
+  return /^[A-Z]{3}$/.test(c)
+}
+
+// Expense permission levels are 1-4 (integers); anything else would fall
+// through the permission switch and lock everyone out of editing.
+export function isValidExpensePermission(v: unknown): v is number {
+  return typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 4
+}
+
 const PERMISSIONS = [
   { value: 1, label: 'Only admin can add/edit/delete expenses' },
   { value: 2, label: 'Everyone can add, only admin can edit/delete' },

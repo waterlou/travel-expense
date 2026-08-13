@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getRequestUser } from '@/lib/api-key'
 import { prisma } from '@/lib/prisma'
-import { uniqueSlug } from '@/lib/utils'
+import { isValidCurrency, isValidDate, isValidExpensePermission } from '@/lib/utils'
+import type { Prisma } from '@prisma/client'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ travelId: string }> }) {
   const { user } = await getRequestUser(req)
@@ -48,27 +49,66 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ trav
 
   try {
     const body = await req.json()
-    const slug = body.name
-      ? await uniqueSlug(body.name, async (s) => {
-          const existing = await prisma.travel.findFirst({ where: { prefix: s, id: { not: travel.id } } })
-          return !!existing
-        })
-      : travel.prefix
+
+    // Patch semantics: only fields present in the body are updated; omitted
+    // fields keep their current values. The prefix is stable across renames so
+    // share links keep working.
+    const data: Prisma.TravelUpdateInput = {}
+    if (body.name !== undefined) {
+      const name = typeof body.name === 'string' ? body.name.trim() : ''
+      if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
+      data.name = name
+    }
+    if (body.mainCurrency !== undefined) {
+      if (typeof body.mainCurrency !== 'string' || !isValidCurrency(body.mainCurrency.toUpperCase())) {
+        return NextResponse.json({ error: 'Invalid currency' }, { status: 400 })
+      }
+      data.mainCurrency = body.mainCurrency.toUpperCase()
+    }
+    if (body.currencies !== undefined) {
+      if (
+        !Array.isArray(body.currencies) ||
+        body.currencies.some((c: unknown) => typeof c !== 'string' || !isValidCurrency(c.toUpperCase()))
+      ) {
+        return NextResponse.json({ error: 'Invalid currencies' }, { status: 400 })
+      }
+      if (body.currencies.length > 10) {
+        return NextResponse.json({ error: 'Maximum 10 additional currencies' }, { status: 400 })
+      }
+      const main = (body.mainCurrency || travel.mainCurrency).toUpperCase()
+      data.currencies = JSON.stringify(body.currencies.map((c: string) => c.toUpperCase()).filter((c: string) => c !== main))
+    }
+    if (body.startDate !== undefined) {
+      if (body.startDate !== '' && (typeof body.startDate !== 'string' || !isValidDate(body.startDate))) {
+        return NextResponse.json({ error: 'Invalid start date' }, { status: 400 })
+      }
+      data.startDate = body.startDate || null
+    }
+    if (body.endDate !== undefined) {
+      if (body.endDate !== '' && (typeof body.endDate !== 'string' || !isValidDate(body.endDate))) {
+        return NextResponse.json({ error: 'Invalid end date' }, { status: 400 })
+      }
+      data.endDate = body.endDate || null
+    }
+    if (body.expensePermission !== undefined) {
+      if (!isValidExpensePermission(body.expensePermission)) {
+        return NextResponse.json({ error: 'expensePermission must be 1-4' }, { status: 400 })
+      }
+      data.expensePermission = body.expensePermission
+    }
+    if (body.allowMemberCreate !== undefined) {
+      if (typeof body.allowMemberCreate !== 'boolean') {
+        return NextResponse.json({ error: 'allowMemberCreate must be a boolean' }, { status: 400 })
+      }
+      data.allowMemberCreate = body.allowMemberCreate
+    }
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
+    }
 
     const updated = await prisma.travel.update({
       where: { id: travel.id },
-      data: {
-        name: body.name,
-        prefix: slug,
-        mainCurrency: body.mainCurrency,
-        currencies: body.currencies
-          ? JSON.stringify(body.currencies.filter((c: string) => c !== body.mainCurrency))
-          : undefined,
-        startDate: body.startDate || null,
-        endDate: body.endDate || null,
-        expensePermission: body.expensePermission,
-        allowMemberCreate: body.allowMemberCreate === true,
-      },
+      data,
     })
 
     return NextResponse.json({ travel: updated })

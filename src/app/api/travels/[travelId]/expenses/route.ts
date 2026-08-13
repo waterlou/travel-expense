@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getRequestUser } from '@/lib/api-key'
 import { prisma } from '@/lib/prisma'
-import { canAddExpense } from '@/lib/utils'
+import { canAddExpense, isValidCurrency, isValidDate } from '@/lib/utils'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ travelId: string }> }) {
   const { user } = await getRequestUser(req)
@@ -57,6 +57,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tra
     if (!date || amount == null || !paidById) {
       return NextResponse.json({ error: 'Date, amount, and payer are required' }, { status: 400 })
     }
+    if (typeof date !== 'string' || !isValidDate(date)) {
+      return NextResponse.json({ error: 'Invalid date' }, { status: 400 })
+    }
+    if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) {
+      return NextResponse.json({ error: 'Amount must be a positive number' }, { status: 400 })
+    }
+    if (currency !== undefined && (typeof currency !== 'string' || !isValidCurrency(currency.toUpperCase()))) {
+      return NextResponse.json({ error: 'Invalid currency' }, { status: 400 })
+    }
+    if (splitType !== undefined && splitType !== 'equal' && splitType !== 'manual') {
+      return NextResponse.json({ error: 'Invalid splitType' }, { status: 400 })
+    }
 
     const memberIds = travel.members.map(m => m.id)
     if (!memberIds.includes(paidById)) {
@@ -68,8 +80,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tra
         travelId: travel.id,
         date,
         description,
-        amount: parseFloat(amount),
-        currency: currency || travel.mainCurrency,
+        amount,
+        currency: (currency || travel.mainCurrency).toUpperCase(),
         paidById,
         extraPayers: JSON.stringify(extraPayers || []),
         splitType: splitType || 'equal',

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getRequestUser } from '@/lib/api-key'
 import { prisma } from '@/lib/prisma'
-import { canEditExpense, canDeleteExpense } from '@/lib/utils'
+import { canEditExpense, canDeleteExpense, isValidCurrency, isValidDate } from '@/lib/utils'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ travelId: string; eid: string }> }) {
   const { user } = await getRequestUser(req)
@@ -57,6 +57,22 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ trav
   try {
     const body = await req.json()
 
+    if (typeof body.date !== 'string' || !isValidDate(body.date)) {
+      return NextResponse.json({ error: 'Invalid date' }, { status: 400 })
+    }
+    if (typeof body.amount !== 'number' || !Number.isFinite(body.amount) || body.amount <= 0) {
+      return NextResponse.json({ error: 'Amount must be a positive number' }, { status: 400 })
+    }
+    if (body.currency !== undefined && (typeof body.currency !== 'string' || !isValidCurrency(body.currency.toUpperCase()))) {
+      return NextResponse.json({ error: 'Invalid currency' }, { status: 400 })
+    }
+    if (body.splitType !== undefined && body.splitType !== 'equal' && body.splitType !== 'manual') {
+      return NextResponse.json({ error: 'Invalid splitType' }, { status: 400 })
+    }
+    if (!travel.members.some(m => m.id === body.paidById)) {
+      return NextResponse.json({ error: 'Invalid payer' }, { status: 400 })
+    }
+
     await prisma.expenseSplit.deleteMany({ where: { expenseId: expense.id } })
 
     const updated = await prisma.expense.update({
@@ -64,8 +80,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ trav
       data: {
         date: body.date,
         description: body.description,
-        amount: parseFloat(body.amount),
-        currency: body.currency,
+        amount: body.amount,
+        currency: body.currency ? body.currency.toUpperCase() : body.currency,
         paidById: body.paidById,
         extraPayers: JSON.stringify(body.extraPayers || []),
         splitType: body.splitType,

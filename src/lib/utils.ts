@@ -43,9 +43,78 @@ export function isValidDate(s: string): boolean {
   return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d
 }
 
-// ISO 4217-shaped currency code: exactly three uppercase letters.
+// Active ISO 4217 currency codes. XXX ("no currency") is deliberately
+// excluded — it is meaningless as an expense or conversion currency.
+const ISO_CURRENCIES = new Set([
+  'AED','AFN','ALL','AMD','ANG','AOA','ARS','AUD','AWG','AZN','BAM','BBD','BDT','BGN','BHD','BIF','BMD','BND','BOB','BOV','BRL','BSD','BTN','BWP','BYN','BZD',
+  'CAD','CDF','CHE','CHF','CHW','CLF','CLP','CNY','COP','COU','CRC','CUC','CUP','CVE','CZK',
+  'DJF','DKK','DOP','DZD',
+  'EGP','ERN','ETB','EUR',
+  'FJD','FKP',
+  'GBP','GEL','GHS','GIP','GMD','GNF','GTQ','GYD',
+  'HKD','HNL','HRK','HTG','HUF',
+  'IDR','ILS','INR','IQD','IRR','ISK',
+  'JMD','JOD','JPY',
+  'KES','KGS','KHR','KMF','KPW','KRW','KWD','KYD','KZT',
+  'LAK','LBP','LKR','LRD','LSL','LYD',
+  'MAD','MDL','MGA','MKD','MMK','MNT','MOP','MRU','MUR','MVR','MWK','MXN','MXV','MYR','MZN',
+  'NAD','NGN','NIO','NOK','NPR','NZD',
+  'OMR',
+  'PAB','PEN','PGK','PHP','PKR','PLN','PYG',
+  'QAR',
+  'RON','RSD','RUB','RWF',
+  'SAR','SBD','SCR','SDG','SEK','SGD','SHP','SLE','SLL','SOS','SRD','SSP','STN','SVC','SYP','SZL',
+  'THB','TJS','TMT','TND','TOP','TRY','TTD','TWD','TZS',
+  'UAH','UGX','USD','USN','UYI','UYU','UYW','UZS',
+  'VED','VES','VND','VUV',
+  'WST',
+  'XAF','XAG','XAU','XBA','XBB','XBC','XBD','XCD','XDR','XOF','XPD','XPF','XPT','XSU','XTS','XUA',
+  'YER',
+  'ZAR','ZMW','ZWL',
+])
+
+// ISO 4217 currency code: exactly three uppercase letters and whitelisted.
 export function isValidCurrency(c: string): boolean {
-  return /^[A-Z]{3}$/.test(c)
+  return /^[A-Z]{3}$/.test(c) && ISO_CURRENCIES.has(c)
+}
+
+// extraPayers must be an array of member ids (extra payers beyond paidById).
+export function validateExtraPayers(extraPayers: unknown, memberIds: string[]): string | null {
+  if (extraPayers === undefined || extraPayers === null) return null
+  if (!Array.isArray(extraPayers)) return 'extraPayers must be an array'
+  if (extraPayers.some(id => typeof id !== 'string' || !memberIds.includes(id))) {
+    return 'Invalid extra payer'
+  }
+  return null
+}
+
+// splitMemberIds: when provided, must be a non-empty array of member ids.
+export function validateSplitMemberIds(splitMemberIds: unknown, memberIds: string[]): string | null {
+  if (splitMemberIds === undefined || splitMemberIds === null) return null
+  if (!Array.isArray(splitMemberIds) || splitMemberIds.length === 0) {
+    return 'splitMemberIds must be a non-empty array'
+  }
+  if (splitMemberIds.some(id => typeof id !== 'string' || !memberIds.includes(id))) {
+    return 'Invalid split member'
+  }
+  return null
+}
+
+// splits map: every key must be a member id, every value a non-negative number
+// (or null), and the total of provided amounts must not exceed the expense amount.
+export function validateSplits(splits: unknown, memberIds: string[], amount: number): string | null {
+  if (splits === undefined || splits === null) return null
+  if (typeof splits !== 'object' || Array.isArray(splits)) return 'Invalid splits'
+  let sum = 0
+  for (const [id, v] of Object.entries(splits as Record<string, unknown>)) {
+    if (!memberIds.includes(id)) return `Invalid split member: ${id}`
+    if (v === null || v === '') continue
+    const n = typeof v === 'number' ? v : typeof v === 'string' ? Number(v) : NaN
+    if (!Number.isFinite(n) || n < 0) return 'Split amounts must be non-negative numbers'
+    sum += n
+  }
+  if (sum > amount + 1e-9) return 'Split amounts exceed the expense amount'
+  return null
 }
 
 // Expense permission levels are 1-4 (integers); anything else would fall

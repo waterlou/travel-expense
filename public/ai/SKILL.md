@@ -63,7 +63,7 @@ Body: `{ "name": string, "mainCurrency"?: string, "currencies"?: string[], "star
 { "travel": { "id": "...", "prefix": "my-trip", "name": "My Trip", "mainCurrency": "USD", "currencies": "[]", "members": [{ "id": "member-id", "name": "Admin", "isAdmin": true }] } }
 ```
 
-`name` is required. In single-user mode the travel gets exactly one member (the Admin); in multi-user mode the caller is the first member. `mainCurrency` must be an ISO 4217 code; `currencies` an array of such codes (max 10); `startDate`/`endDate` valid `YYYY-MM-DD`; `expensePermission` an integer 1–4 — invalid values → 400.
+`name` is required. In single-user mode the travel gets exactly one member (the Admin); in multi-user mode the caller is the first member. `mainCurrency` must be a whitelisted ISO 4217 code; `currencies` an array of such codes (max 10); `startDate`/`endDate` valid `YYYY-MM-DD`; `expensePermission` an integer 1–4 — invalid values → 400. Concurrent creates with the same name are disambiguated automatically (prefix suffixes).
 
 ### 4. `GET /api/travels/{idOrPrefix}`
 
@@ -127,7 +127,7 @@ Body: `{ "date": "YYYY-MM-DD", "description"?: string, "amount": number, "curren
 
 `date`, `amount`, and `paidById` are required. `currency` defaults to the travel's `mainCurrency`. `paidById` must be a member id from the travel payload; invalid payer → 400. `splitMemberIds` defaults to all members. For manual splits, provide `splits` amounts (strings, e.g. `"21.25"`); equal splits leave them `null`.
 
-Validation (invalid → 400): `date` must be a real `YYYY-MM-DD`; `amount` must be a JSON number > 0 (0, negatives, and strings are rejected); `currency` an ISO 4217 code; `splitType` exactly `"equal"` or `"manual"`.
+Validation (invalid → 400): `date` must be a real `YYYY-MM-DD`; `amount` must be a JSON number > 0 (0, negatives, and strings are rejected); `currency` a whitelisted ISO 4217 code; `splitType` exactly `"equal"` or `"manual"`; `extraPayers` an array of member ids; `splitMemberIds` a non-empty array of member ids (omit it to split among all members); `splits` keys must be member ids, values non-negative numbers, and their total must not exceed `amount`.
 
 ### 10. `GET /api/travels/{idOrPrefix}/expenses/{eid}`
 
@@ -147,7 +147,7 @@ Same fields as POST (replaces the expense and its splits). → `{ "expense": { .
 
 `GET` → `{ "rates": [{ "id": "...", "travelId": "...", "fromCurrency": "EUR", "toCurrency": "USD", "rate": 1.09, "updatedAt": "..." }] }`.
 
-`PUT` body: `{ "fromCurrency": "EUR", "rate": 1.09 }` — upserts the rate from `fromCurrency` to the travel's `mainCurrency`. → `{ "rate": { ... } }`. `fromCurrency` must be an ISO 4217 code and cannot equal the travel's `mainCurrency`; `rate` a positive number — violations → 400.
+`PUT` body: `{ "fromCurrency": "EUR", "rate": 1.09 }` — upserts the rate from `fromCurrency` to the travel's `mainCurrency`. → `{ "rate": { ... } }`. `fromCurrency` must be a whitelisted ISO 4217 code (fake codes like `XXX` → 400) and cannot equal the travel's `mainCurrency`; `rate` a positive number — violations → 400.
 
 ### 14. `GET /api/travels/{idOrPrefix}/members`
 
@@ -155,7 +155,7 @@ Same fields as POST (replaces the expense and its splits). → `{ "expense": { .
 
 ## Guidance
 
-- Amounts are JSON numbers; dates are `YYYY-MM-DD`; currencies are ISO 4217 codes (e.g. USD, EUR).
+- Amounts are JSON numbers; dates are `YYYY-MM-DD`; currencies are whitelisted ISO 4217 codes (e.g. USD, EUR — `XXX` and other fake codes are rejected; lowercase codes like `eur` are accepted and normalized to uppercase).
 - `paidById` must be a member id from the travel payload; invalid payer → 400.
 - Equal split: splits are auto-created for `splitMemberIds` (defaults to all members) with `amount: null` — compute each share as `amount / number of split members`.
 - Manual split: `splits: { "<memberId>": "<amount>" }`.

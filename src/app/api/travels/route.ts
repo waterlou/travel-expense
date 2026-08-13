@@ -3,6 +3,7 @@ import { getRequestUser } from '@/lib/api-key'
 import { prisma } from '@/lib/prisma'
 import { uniqueSlug, isValidCurrency, isValidDate, isValidExpensePermission } from '@/lib/utils'
 import { isSingleUserMode, SINGLE_USER_ID, SINGLE_USER_NAME } from '@/lib/single-user'
+import { Prisma } from '@prisma/client'
 
 export async function GET(req: NextRequest) {
   const { user } = await getRequestUser(req)
@@ -63,41 +64,54 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'expensePermission must be 1-4' }, { status: 400 })
     }
 
-    const prefix = await uniqueSlug(name, async (slug) => {
-      const existing = await prisma.travel.findUnique({ where: { prefix: slug } })
-      return !!existing
-    })
-
     const currentUserId = user.id
 
-    const travel = await prisma.travel.create({
-      data: {
-        name,
-        prefix,
-        mainCurrency: (mainCurrency || 'USD').toUpperCase(),
-        currencies: JSON.stringify((currencies || []).map((c: string) => c.toUpperCase()).filter((c: string) => c !== (mainCurrency || 'USD').toUpperCase())),
-        startDate: startDate || null,
-        endDate: endDate || null,
-        expensePermission: expensePermission || 1,
-        allowMemberCreate: allowMemberCreate === true,
-        members: {
-          create: isSingleUserMode()
-            ? [{ userId: SINGLE_USER_ID, name: SINGLE_USER_NAME, isAdmin: true }]
-            : members?.length
-              ? members.map((m: { name?: string; isAdmin?: boolean }, i: number) => ({
-                  userId: i === 0 ? currentUserId : null,
-                  name: m.name || 'Member',
-                  isAdmin: m.isAdmin || false,
-                }))
-              : [{
-                  userId: currentUserId,
-                  name: user.name || 'Admin',
-                  isAdmin: true,
-                }],
-        },
-      },
-      include: { members: true },
-    })
+    // Concurrent same-name creates race on the unique prefix: check-then-create
+    // is a TOCTOU window. On the unique-constraint error, regenerate the slug
+    // and retry (bounded).
+    let travel: Awaited<ReturnType<typeof prisma.travel.create>> | null = null
+    for (let attempt = 0; attempt < 3 && !travel; attempt++) {
+      const prefix = await uniqueSlug(name, async (slug) => {
+        const existing = await prisma.travel.findUnique({ where: { prefix: slug } })
+        return !!existing
+      })
+      try {
+        travel = await prisma.travel.create({
+          data: {
+            name,
+            prefix,
+            mainCurrency: (mainCurrency || 'USD').toUpperCase(),
+            currencies: JSON.stringify((currencies || []).map((c: string) => c.toUpperCase()).filter((c: string) => c !== (mainCurrency || 'USD').toUpperCase())),
+            startDate: startDate || null,
+            endDate: endDate || null,
+            expensePermission: expensePermission || 1,
+            allowMemberCreate: allowMemberCreate === true,
+            members: {
+              create: isSingleUserMode()
+                ? [{ userId: SINGLE_USER_ID, name: SINGLE_USER_NAME, isAdmin: true }]
+                : members?.length
+                  ? members.map((m: { name?: string; isAdmin?: boolean }, i: number) => ({
+                      userId: i === 0 ? currentUserId : null,
+                      name: m.name || 'Member',
+                      isAdmin: m.isAdmin || false,
+                    }))
+                  : [{
+                      userId: currentUserId,
+                      name: user.name || 'Admin',
+                      isAdmin: true,
+                    }],
+            },
+          },
+          include: { members: true },
+        })
+      } catch (e) {
+        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') continue
+        throw e
+      }
+    }
+    if (!travel) {
+      return NextResponse.json({ error: 'Failed to create travel' }, { status: 500 })
+    }
 
     return NextResponse.json({ travel }, { status: 201 })
   } catch (error) {

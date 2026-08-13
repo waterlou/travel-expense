@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getRequestUser } from '@/lib/api-key'
 import { prisma } from '@/lib/prisma'
-import { canEditExpense, canDeleteExpense, isValidCurrency, isValidDate } from '@/lib/utils'
+import { canEditExpense, canDeleteExpense, isValidCurrency, isValidDate, validateExtraPayers, validateSplitMemberIds, validateSplits } from '@/lib/utils'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ travelId: string; eid: string }> }) {
   const { user } = await getRequestUser(req)
@@ -72,6 +72,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ trav
     if (!travel.members.some(m => m.id === body.paidById)) {
       return NextResponse.json({ error: 'Invalid payer' }, { status: 400 })
     }
+    const memberIds = travel.members.map(m => m.id)
+    const extraPayersErr = validateExtraPayers(body.extraPayers, memberIds)
+    if (extraPayersErr) return NextResponse.json({ error: extraPayersErr }, { status: 400 })
+    const splitMembersErr = validateSplitMemberIds(body.splitMemberIds, memberIds)
+    if (splitMembersErr) return NextResponse.json({ error: splitMembersErr }, { status: 400 })
+    const splitsErr = validateSplits(body.splits, memberIds, body.amount)
+    if (splitsErr) return NextResponse.json({ error: splitsErr }, { status: 400 })
 
     await prisma.expenseSplit.deleteMany({ where: { expenseId: expense.id } })
 

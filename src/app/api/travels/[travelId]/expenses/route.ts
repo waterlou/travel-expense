@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getRequestUser } from '@/lib/api-key'
 import { prisma } from '@/lib/prisma'
-import { canAddExpense, isValidCurrency, isValidDate } from '@/lib/utils'
+import { canAddExpense, isValidCurrency, isValidDate, validateExtraPayers, validateSplitMemberIds, validateSplits } from '@/lib/utils'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ travelId: string }> }) {
   const { user } = await getRequestUser(req)
@@ -74,6 +74,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tra
     if (!memberIds.includes(paidById)) {
       return NextResponse.json({ error: 'Invalid payer' }, { status: 400 })
     }
+    const extraPayersErr = validateExtraPayers(extraPayers, memberIds)
+    if (extraPayersErr) return NextResponse.json({ error: extraPayersErr }, { status: 400 })
+    const splitMembersErr = validateSplitMemberIds(splitMemberIds, memberIds)
+    if (splitMembersErr) return NextResponse.json({ error: splitMembersErr }, { status: 400 })
+    const splitsErr = validateSplits(splits, memberIds, amount)
+    if (splitsErr) return NextResponse.json({ error: splitsErr }, { status: 400 })
 
     const expense = await prisma.expense.create({
       data: {

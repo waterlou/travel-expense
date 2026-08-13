@@ -43,6 +43,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   members       TravelMember[]
+  apiKeys       ApiKey[]
 }
 
 model VerificationToken {
@@ -158,4 +159,15 @@ model ExchangeRate {
   travel Travel @relation(fields: [travelId], references: [id], onDelete: Cascade)
 
   @@unique([travelId, fromCurrency, toCurrency])
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  userId     String
+  name       String
+  keyHash    String    @unique
+  keyPrefix  String
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

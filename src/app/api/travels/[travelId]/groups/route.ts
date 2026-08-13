@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSessionUser } from '@/lib/auth'
+import { getRequestUser } from '@/lib/api-key'
 import { isSingleUserMode } from '@/lib/single-user'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ travelId: string }> }) {
   const { travelId } = await params
-  const user = await getSessionUser()
+  const { user } = await getRequestUser(req)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (isSingleUserMode()) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ trav
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ travelId: string }> }) {
   const { travelId } = await params
-  const user = await getSessionUser()
+  const { user } = await getRequestUser(req)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (isSingleUserMode()) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 

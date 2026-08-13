@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSessionUser } from '@/lib/auth'
+import { getRequestUser } from '@/lib/api-key'
 import { prisma } from '@/lib/prisma'
 import { canAddExpense } from '@/lib/utils'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ travelId: string }> }) {
-  const user = await getSessionUser()
+  const { user } = await getRequestUser(req)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { travelId } = await params
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ trav
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ travelId: string }> }) {
-  const user = await getSessionUser()
+  const { user } = await getRequestUser(req)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { travelId } = await params

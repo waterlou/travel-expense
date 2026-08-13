@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSessionUser } from '@/lib/auth'
+import { getRequestUser } from '@/lib/api-key'
 import { isSingleUserMode } from '@/lib/single-user'
 import { prisma } from '@/lib/prisma'
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ travelId: string; inviteId: string }> }) {
   const { travelId, inviteId } = await params
-  const user = await getSessionUser()
+  const { user } = await getRequestUser(req)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (isSingleUserMode()) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 

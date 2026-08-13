@@ -29,14 +29,19 @@ export default withAuth(
       return NextResponse.next()
     }
 
-    // Allow all auth routes, rates-proxy, and uploads to pass through
+    // Allow all auth routes, rates-proxy, uploads, and the public AI skills guide
     if (
       pathname.startsWith('/api/auth/') ||
       pathname.startsWith('/api/rates-proxy') ||
-      pathname.startsWith('/uploads')
+      pathname.startsWith('/uploads') ||
+      pathname.startsWith('/ai/')
     ) {
       return NextResponse.next()
     }
+
+    // API-key-authenticated requests reach the handlers, which validate the token
+    const hasBearer = req.headers.get('authorization')?.startsWith('Bearer ') ?? false
+    if (pathname.startsWith('/api/') && hasBearer) return NextResponse.next()
 
     if (pathname === '/login' || pathname === '/register' || pathname.startsWith('/invite')) {
       if (token && pathname !== '/invite') return NextResponse.redirect(new URL(basePath || '/', req.url))
@@ -64,9 +69,11 @@ export default withAuth(
           pathname.startsWith('/api/auth/') ||
           pathname.startsWith('/api/rates-proxy') ||
           pathname.startsWith('/uploads') ||
+          pathname.startsWith('/ai/') ||
           pathname.startsWith('/_next/') ||
           pathname === '/favicon.ico'
         ) return true
+        if (pathname.startsWith('/api/') && req.headers.get('authorization')?.startsWith('Bearer ')) return true
         return !!token
       },
     },

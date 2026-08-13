@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSessionUser } from '@/lib/auth'
+import { getRequestUser } from '@/lib/api-key'
 import { prisma } from '@/lib/prisma'
 import { uniqueSlug } from '@/lib/utils'
 import { isSingleUserMode, SINGLE_USER_ID, SINGLE_USER_NAME } from '@/lib/single-user'
 
-export async function GET() {
-  const user = await getSessionUser()
+export async function GET(req: NextRequest) {
+  const { user } = await getRequestUser(req)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const memberships = await prisma.travelMember.findMany({
@@ -28,7 +28,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getSessionUser()
+  const { user } = await getRequestUser(req)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {

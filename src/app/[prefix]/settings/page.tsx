@@ -9,7 +9,7 @@ import {
   Chip, CircularProgress, Alert, Dialog, DialogTitle,
   DialogContent, DialogActions, FormControlLabel, Switch,
 } from '@mui/material'
-import { ArrowBack } from '@mui/icons-material'
+import { ArrowBack, ContentCopy } from '@mui/icons-material'
 import { useT } from '@/lib/i18n/LanguageContext'
 import { appUrl } from '@/lib/utils'
 import { isSingleUserMode, resolveCurrentMember } from '@/lib/single-user'
@@ -26,6 +26,13 @@ export default function SettingsPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [keys, setKeys] = useState<any[]>([])
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createName, setCreateName] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [revealKey, setRevealKey] = useState('')
+  const [copiedSkills, setCopiedSkills] = useState(false)
+  const [copiedKey, setCopiedKey] = useState(false)
 
   const [form, setForm] = useState({
     name: '', mainCurrency: 'USD',
@@ -84,12 +91,67 @@ export default function SettingsPage() {
     router.push('/')
   }
 
+  async function loadKeys() {
+    try {
+      const res = await fetch(appUrl('/api/keys'))
+      const data = await res.json()
+      if (res.ok) setKeys(data.keys || [])
+      else setError(data.error || 'Failed to load keys')
+    } catch (e: any) {
+      setError(e.message)
+    }
+  }
+
+  useEffect(() => {
+    loadKeys()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function handleCreateKey() {
+    setCreating(true)
+    setError('')
+    try {
+      const res = await fetch(appUrl('/api/keys'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: createName.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to create key')
+      setCreateOpen(false)
+      setCreateName('')
+      setRevealKey(data.key)
+      loadKeys()
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  async function handleRevoke(keyId: string) {
+    setError('')
+    try {
+      const res = await fetch(appUrl(`/api/keys/${keyId}`), { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to revoke key')
+      loadKeys()
+    } catch (e: any) {
+      setError(e.message)
+    }
+  }
+
+  function copyToClipboard(text: string, setCopied: (v: boolean) => void) {
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   const currentUser = resolveCurrentMember(travel?.members, (session?.user as any)?.id)
   const isAdmin = currentUser?.isAdmin
 
   if (loading) return <Box textAlign="center" py={4}><CircularProgress /></Box>
   if (!travel) return <Typography>{t('common.notFound')}</Typography>
-  if (!isAdmin) return <Container sx={{ mt: 3 }}><Typography>{t('error.notAdmin')}</Typography></Container>
 
   return (
     <Container maxWidth="md" sx={{ mt: 3, mb: 3 }}>
@@ -100,6 +162,8 @@ export default function SettingsPage() {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
+      {isAdmin && (
+        <>
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>{t('settings.travelDetails')}</Typography>
@@ -180,6 +244,8 @@ export default function SettingsPage() {
           </Box>
         </CardContent>
       </Card>
+        </>
+      )}
 
       <Card sx={{ mb: 3 }}>
         <CardContent>
@@ -194,17 +260,83 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom color="error">{t('settings.dangerZone')}</Typography>
+          <Typography variant="h6" gutterBottom>API Keys (AI access)</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {t('settings.dangerDesc')}
+            Create keys for AI agents. Agents authenticate with <code>Authorization: Bearer &lt;key&gt;</code> and read the skills guide.
           </Typography>
-          <Button color="error" variant="outlined" onClick={() => setDeleteOpen(true)}>
-            {t('settings.deleteTravel')}
-          </Button>
+          <Box mb={2} display="flex" alignItems="center" gap={1} flexWrap="wrap">
+            <Typography variant="body2">AI skills guide:</Typography>
+            <code>{appUrl('/ai/SKILL.md')}</code>
+            <Button size="small" variant="outlined"
+              startIcon={copiedSkills ? undefined : <ContentCopy />}
+              onClick={() => copyToClipboard(appUrl('/ai/SKILL.md'), setCopiedSkills)}>
+              {copiedSkills ? 'Copied' : 'Copy'}
+            </Button>
+          </Box>
+          {keys.map(k => (
+            <Box key={k.id} display="flex" alignItems="center" gap={1} mb={1} flexWrap="wrap">
+              <Typography variant="body2" sx={{ fontWeight: 500, minWidth: 120 }}>{k.name}</Typography>
+              <Typography variant="body2" component="code" sx={{ fontFamily: 'monospace' }}>{k.keyPrefix}&hellip;</Typography>
+              <Typography variant="body2" color="text.secondary">
+                created {new Date(k.createdAt).toLocaleDateString()}
+                {k.lastUsedAt ? ` &middot; last used ${new Date(k.lastUsedAt).toLocaleDateString()}` : ''}
+              </Typography>
+              <Button size="small" color="error" onClick={() => handleRevoke(k.id)}>Revoke</Button>
+            </Box>
+          ))}
+          <Button variant="contained" onClick={() => setCreateOpen(true)}>Create key</Button>
         </CardContent>
       </Card>
+
+      <Dialog open={createOpen} onClose={() => setCreateOpen(false)}>
+        <DialogTitle>Create API key</DialogTitle>
+        <DialogContent>
+          <TextField label="Name" fullWidth value={createName} sx={{ mt: 1 }}
+            onChange={e => setCreateName(e.target.value)} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCreateOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleCreateKey} disabled={creating || !createName.trim()}>
+            {creating ? <CircularProgress size={20} /> : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={!!revealKey} onClose={() => setRevealKey('')}>
+        <DialogTitle>API key created</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            This key is shown only once — copy it now.
+          </Typography>
+          <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
+            <code style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>{revealKey}</code>
+            <Button size="small" variant="outlined"
+              startIcon={copiedKey ? undefined : <ContentCopy />}
+              onClick={() => copyToClipboard(revealKey, setCopiedKey)}>
+              {copiedKey ? 'Copied' : 'Copy'}
+            </Button>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRevealKey('')}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {isAdmin && (
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom color="error">{t('settings.dangerZone')}</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              {t('settings.dangerDesc')}
+            </Typography>
+            <Button color="error" variant="outlined" onClick={() => setDeleteOpen(true)}>
+              {t('settings.deleteTravel')}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)}>
         <DialogTitle>{t('settings.deleteTravel')}?</DialogTitle>

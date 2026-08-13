@@ -57,13 +57,23 @@ List travels the authenticated user is a member of.
 
 ### 3. `POST /api/travels`
 
-Body: `{ "name": string, "mainCurrency"?: string, "currencies"?: string[], "startDate"?: "YYYY-MM-DD", "endDate"?: "YYYY-MM-DD" }` → 201.
+Body: `{ "name": string, "mainCurrency"?: string, "currencies"?: string[], "startDate"?: "YYYY-MM-DD", "endDate"?: "YYYY-MM-DD", "members"?: [{ "name": string, "isAdmin"?: boolean }] }` → 201.
 
 ```json
 { "travel": { "id": "...", "prefix": "my-trip", "name": "My Trip", "mainCurrency": "USD", "currencies": "[]", "members": [{ "id": "member-id", "name": "Admin", "isAdmin": true }] } }
 ```
 
 `name` is required. In single-user mode the travel gets exactly one member (the Admin); in multi-user mode the caller is always the first member and is always the admin (pass `isAdmin: true` in the members array only for additional co-admins; other members default to non-admin). `mainCurrency` must be a whitelisted ISO 4217 code; `currencies` an array of such codes (max 10); `startDate`/`endDate` valid `YYYY-MM-DD`; `expensePermission` an integer 1–4 — invalid values → 400. Concurrent creates with the same name are disambiguated automatically (prefix suffixes).
+
+**Creating a trip with other people (pre-registering members)**: pass `members` to create placeholder members for people who have not signed up yet — the first entry is bound to the caller's account, the rest become unregistered placeholders (`userId: null`) that join later via invite codes (section 15). The caller's entry is always the admin automatically; set `isAdmin: true` only on additional co-admins.
+
+Example — a trip for you, Gabriel and Horace:
+
+```json
+{ "name": "2027 Ski Trip", "mainCurrency": "JPY", "currencies": ["HKD"], "members": [ { "name": "Water Lou" }, { "name": "Gabriel" }, { "name": "Horace" } ] }
+```
+
+Then create one invite code per person (section 15) and share each link.
 
 ### 4. `GET /api/travels/{idOrPrefix}`
 
@@ -151,7 +161,33 @@ Same fields as POST (replaces the expense and its splits). → `{ "expense": { .
 
 ### 14. `GET /api/travels/{idOrPrefix}/members`
 
-`{ "members": [{ "id": "...", "name": "...", "isAdmin": true }] }` — read-only; member create/update/delete is not exposed (it goes through the invites/groups flow in the UI), and this route returns 404 in single-user mode.
+`{ "members": [{ "id": "...", "name": "...", "isAdmin": true }] }` — read-only. `POST`/`PUT`/`DELETE` on `/members` are not implemented (→ 405); member create/update/delete goes through invite codes (section 15) and the web UI. This route returns 404 in single-user mode.
+
+### 15. `POST /api/travels/{idOrPrefix}/invites`
+
+Admin only. Body: `{ "multiUse"?: boolean }` (default `false` = single-use; any other field such as `name` is ignored). → 201 `{ "code": "MD6ZED6K", "id": "..." }`. Codes expire 30 days after creation. The invitee opens `<base>/invite?code=MD6ZED6K` (signs in if needed) to join the trip and bind their account to one of the pre-registered placeholder members (see section 3) — or to a new member slot.
+
+### 16. `GET /api/travels/{idOrPrefix}/invites`
+
+Admin only. → `{ "invites": [{ "id": "...", "code": "MD6ZED6K", "active": true, "multiUse": false, "usageCount": 0, "expiresAt": "...", "createdAt": "..." }] }`.
+
+Supporting endpoints (admin only): `PATCH /api/travels/{idOrPrefix}/invites/{inviteId}` with `{ "active": boolean }` deactivates/reactivates a code (→ `{ "invite": { ... } }`); `DELETE /api/travels/{idOrPrefix}/invites/clean` deletes inactive or expired codes (→ `{ "deleted": N }`). Individual codes cannot be deleted (`DELETE` on one code → 405).
+
+### 17. `POST /api/travels/{idOrPrefix}/groups`
+
+Admin only. Body: `{ "name": string, "memberIds"?: string[] }` (`memberIds` assigns existing members to the new group). → 201 `{ "group": { "id": "...", "travelId": "...", "name": "...", "members": [ ... ] } }`.
+
+### 18. `GET /api/travels/{idOrPrefix}/groups`
+
+→ `{ "groups": [{ "id": "...", "name": "...", "members": [...] }], "members": [...] }` — the travel's members are included in the same response.
+
+### 19. `PUT /api/travels/{idOrPrefix}/groups/{gid}`
+
+Admin only. Body: `{ "name"?: string, "memberIds"?: string[] }` — renames the group and **replaces** its membership (members not listed are removed from the group). → `{ "group": { ... } }`.
+
+### 20. `DELETE /api/travels/{idOrPrefix}/groups/{gid}`
+
+Admin only. Removes the group (members are unassigned, not deleted). → `{ "success": true }`.
 
 ## Guidance
 
@@ -162,3 +198,5 @@ Same fields as POST (replaces the expense and its splits). → `{ "expense": { .
 - Single-user mode has exactly one member (the Admin) — use its id for `paidById` and splits.
 - Delete is permanent; confirm before deleting.
 - Compute settlement/balance yourself from expenses; there is no balance endpoint.
+- Splits are **snapshotted** at expense creation — members who join later are not added to existing splits automatically. To re-split after new members join, `PUT /expenses/{eid}` with the new `splitMemberIds` (equal splits leave `amount: null`; compute each share as `amount / member count`).
+- Multi-person workflow: create the trip with `members` pre-registered (section 3), then `POST /invites` one code per person and share each `<base>/invite?code=...` link. You cannot add people to an existing trip directly via the API — only via invite codes.

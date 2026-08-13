@@ -10,6 +10,7 @@ import { isSingleUserMode, SINGLE_USER_NAME } from '@/lib/single-user'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import DateRangeSelector from '@/components/DateRangeSelector'
 import PhoneSignIn from '@/components/PhoneSignIn'
+import ApiKeysCard from '@/components/ApiKeysCard'
 import {
   Container, Box, Typography, Button, Card, CardContent,
   AppBar, Toolbar, IconButton, Menu, MenuItem,
@@ -197,6 +198,10 @@ function HomePage() {
             ))}
           </List>
         )}
+
+        <Box mt={3}>
+          <ApiKeysCard />
+        </Box>
       </Container>
 
       <CreateTravelDialog

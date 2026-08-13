@@ -127,7 +127,7 @@ Body: `{ "date": "YYYY-MM-DD", "description"?: string, "amount": number, "curren
 
 `date`, `amount`, and `paidById` are required. `currency` defaults to the travel's `mainCurrency`. `paidById` must be a member id from the travel payload; invalid payer → 400. `splitMemberIds` defaults to all members. For manual splits, provide `splits` amounts (strings, e.g. `"21.25"`); equal splits leave them `null`.
 
-Validation (invalid → 400): `date` must be a real `YYYY-MM-DD`; `amount` must be a JSON number > 0 (0, negatives, and strings are rejected); `currency` a whitelisted ISO 4217 code; `splitType` exactly `"equal"` or `"manual"`; `extraPayers` an array of member ids; `splitMemberIds` a non-empty array of member ids (omit it to split among all members); `splits` keys must be member ids, values non-negative numbers, and their total must not exceed `amount`.
+Validation (invalid → 400): `date` must be a real `YYYY-MM-DD`; `amount` must be a JSON number > 0 (0, negatives, and strings are rejected); `currency` a whitelisted ISO 4217 code; `splitType` exactly `"equal"` or `"manual"`; `extraPayers` an array of member ids; `splitMemberIds` a non-empty array of member ids (omit it to split among all members); `splits` keys must be member ids, values non-negative numbers, and their total must not exceed `amount` (it may be less — partial splits are allowed).
 
 ### 10. `GET /api/travels/{idOrPrefix}/expenses/{eid}`
 
@@ -158,7 +158,7 @@ Same fields as POST (replaces the expense and its splits). → `{ "expense": { .
 - Amounts are JSON numbers; dates are `YYYY-MM-DD`; currencies are whitelisted ISO 4217 codes (e.g. USD, EUR — `XXX` and other fake codes are rejected; lowercase codes like `eur` are accepted and normalized to uppercase).
 - `paidById` must be a member id from the travel payload; invalid payer → 400.
 - Equal split: splits are auto-created for `splitMemberIds` (defaults to all members) with `amount: null` — compute each share as `amount / number of split members`.
-- Manual split: `splits: { "<memberId>": "<amount>" }`.
+- Manual split: `splits: { "<memberId>": "<amount>" }` — the total may be **less** than `amount` (partial allocation is allowed), but must not exceed it.
 - Single-user mode has exactly one member (the Admin) — use its id for `paidById` and splits.
 - Delete is permanent; confirm before deleting.
 - Compute settlement/balance yourself from expenses; there is no balance endpoint.

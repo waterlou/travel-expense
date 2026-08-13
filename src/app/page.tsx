@@ -21,7 +21,7 @@ import {
 import {
   Add, Logout, TravelExplore, Google, Apple, Phone,
   ChevronRight, Menu as MenuIcon,
-  DarkMode, LightMode, Person, PersonAdd,
+  DarkMode, LightMode, Person, PersonAdd, VpnKey,
 } from '@mui/icons-material'
 import { SessionProvider } from 'next-auth/react'
 
@@ -38,6 +38,7 @@ function HomePage() {
   const [loading, setLoading] = useState(true)
   const [createOpen, setCreateOpen] = useState(false)
   const [joinDialog, setJoinDialog] = useState(false)
+  const [keysOpen, setKeysOpen] = useState(false)
   const [joinCode, setJoinCode] = useState('')
   const [form, setForm] = useState<any>({
     name: '', mainCurrency: 'USD', allowMemberCreate: false,
@@ -132,9 +133,18 @@ function HomePage() {
             {mode === 'dark' ? <LightMode /> : <DarkMode />}
           </IconButton>
           {singleUser ? (
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
-              {SINGLE_USER_NAME[0]}
-            </Avatar>
+            <>
+              <IconButton color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)}>
+                <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
+                  {SINGLE_USER_NAME[0]}
+                </Avatar>
+              </IconButton>
+              <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
+                <MenuItem onClick={() => { setAnchorEl(null); setKeysOpen(true) }}>
+                  <VpnKey sx={{ mr: 1 }} /> API Keys
+                </MenuItem>
+              </Menu>
+            </>
           ) : (
             <>
               <IconButton color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)}>
@@ -145,6 +155,9 @@ function HomePage() {
               <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
                 <MenuItem disabled>
                   <Person sx={{ mr: 1 }} /> {session?.user?.email}
+                </MenuItem>
+                <MenuItem onClick={() => { setAnchorEl(null); setKeysOpen(true) }}>
+                  <VpnKey sx={{ mr: 1 }} /> API Keys
                 </MenuItem>
                 <Divider />
                 <MenuItem onClick={() => signOut({ callbackUrl: (typeof process !== 'undefined' ? process.env.BASE_PATH : '') || '/' })}>
@@ -198,10 +211,6 @@ function HomePage() {
             ))}
           </List>
         )}
-
-        <Box mt={3}>
-          <ApiKeysCard />
-        </Box>
       </Container>
 
       <CreateTravelDialog
@@ -215,6 +224,15 @@ function HomePage() {
         onCreated={(prefix: string) => router.push(`/${prefix}`)}
         setError={setError}
       />
+
+      <Dialog open={keysOpen} onClose={() => setKeysOpen(false)} maxWidth="md" fullWidth>
+        <DialogContent sx={{ pb: 3 }}>
+          <ApiKeysCard />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setKeysOpen(false)}>{t('common.close')}</Button>
+        </DialogActions>
+      </Dialog>
 
       <JoinDialog
         open={joinDialog}

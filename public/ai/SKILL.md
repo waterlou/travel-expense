@@ -63,7 +63,7 @@ Body: `{ "name": string, "mainCurrency"?: string, "currencies"?: string[], "star
 { "travel": { "id": "...", "prefix": "my-trip", "name": "My Trip", "mainCurrency": "USD", "currencies": "[]", "members": [{ "id": "member-id", "name": "Admin", "isAdmin": true }] } }
 ```
 
-`name` is required. In single-user mode the travel gets exactly one member (the Admin); in multi-user mode the caller is the first member. `mainCurrency` must be a whitelisted ISO 4217 code; `currencies` an array of such codes (max 10); `startDate`/`endDate` valid `YYYY-MM-DD`; `expensePermission` an integer 1–4 — invalid values → 400. Concurrent creates with the same name are disambiguated automatically (prefix suffixes).
+`name` is required. In single-user mode the travel gets exactly one member (the Admin); in multi-user mode the caller is always the first member and is always the admin (pass `isAdmin: true` in the members array only for additional co-admins; other members default to non-admin). `mainCurrency` must be a whitelisted ISO 4217 code; `currencies` an array of such codes (max 10); `startDate`/`endDate` valid `YYYY-MM-DD`; `expensePermission` an integer 1–4 — invalid values → 400. Concurrent creates with the same name are disambiguated automatically (prefix suffixes).
 
 ### 4. `GET /api/travels/{idOrPrefix}`
 

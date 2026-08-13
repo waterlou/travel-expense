@@ -95,9 +95,11 @@ export async function POST(req: NextRequest) {
                 ? [{ userId: SINGLE_USER_ID, name: SINGLE_USER_NAME, isAdmin: true }]
                 : members?.length
                   ? members.map((m: { name?: string; isAdmin?: boolean }, i: number) => ({
+                      // Slot 0 is always the caller; the creator must stay admin
+                      // or permission 1 (admin-only) locks everyone out of the trip.
                       userId: i === 0 ? currentUserId : null,
                       name: m.name || 'Member',
-                      isAdmin: m.isAdmin || false,
+                      isAdmin: i === 0 ? true : m.isAdmin || false,
                     }))
                   : [{
                       userId: currentUserId,

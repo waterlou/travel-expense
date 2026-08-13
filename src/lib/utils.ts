@@ -9,6 +9,12 @@ export function generateInviteCode(): string {
   return customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 8)()
 }
 
+// Random 6-char lowercase alnum suffix for slug retries under contention.
+const slugSuffix = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 6)
+export function randomSlugSuffix(): string {
+  return slugSuffix()
+}
+
 export function slugify(text: string): string {
   return text
     .toLowerCase()

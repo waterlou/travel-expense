@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getRequestUser } from '@/lib/api-key'
 import { prisma } from '@/lib/prisma'
-import { uniqueSlug, isValidCurrency, isValidDate, isValidExpensePermission } from '@/lib/utils'
+import { uniqueSlug, slugify, randomSlugSuffix, isValidCurrency, isValidDate, isValidExpensePermission } from '@/lib/utils'
 import { isSingleUserMode, SINGLE_USER_ID, SINGLE_USER_NAME } from '@/lib/single-user'
 import { Prisma } from '@prisma/client'
 
@@ -67,14 +67,18 @@ export async function POST(req: NextRequest) {
     const currentUserId = user.id
 
     // Concurrent same-name creates race on the unique prefix: check-then-create
-    // is a TOCTOU window. On the unique-constraint error, regenerate the slug
-    // and retry (bounded).
+    // is a TOCTOU window. Retry on the unique-constraint error (P2002). The
+    // first attempt uses the sequential slug; retries use a random suffix so
+    // concurrent contenders don't all compute the same next slug and burn
+    // retries colliding with each other.
     let travel: Awaited<ReturnType<typeof prisma.travel.create>> | null = null
-    for (let attempt = 0; attempt < 3 && !travel; attempt++) {
-      const prefix = await uniqueSlug(name, async (slug) => {
-        const existing = await prisma.travel.findUnique({ where: { prefix: slug } })
-        return !!existing
-      })
+    for (let attempt = 0; attempt < 5 && !travel; attempt++) {
+      const prefix = attempt === 0
+        ? await uniqueSlug(name, async (slug) => {
+            const existing = await prisma.travel.findUnique({ where: { prefix: slug } })
+            return !!existing
+          })
+        : `${slugify(name)}-${randomSlugSuffix()}`
       try {
         travel = await prisma.travel.create({
           data: {

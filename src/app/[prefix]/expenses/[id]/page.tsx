@@ -420,7 +420,7 @@ function CalculatorDialog({ open, value, onResult, onClose }: any) {
         </Grid>
       </DialogContent>
       <DialogActions>
-        <Button onClick={clear}>Clear</Button>
+        <Button onClick={clear}>{t('common.clear')}</Button>
         <Button onClick={() => onResult(display)}>{t('expense.useValue')}</Button>
       </DialogActions>
     </Dialog>

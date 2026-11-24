@@ -74,7 +74,7 @@ export default function DashboardPage() {
             <CardContent>
               <Box display="flex" alignItems="center" gap={1} mb={1}>
                 <CurrencyExchange color="primary" />
-                <Typography color="text.secondary">Currencies</Typography>
+                <Typography color="text.secondary">{t('settings.currencies')}</Typography>
               </Box>
               <Typography variant="h4">{currencies.length}</Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>

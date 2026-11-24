@@ -10,6 +10,7 @@ import {
 } from '@mui/material'
 import { Add, Edit, Delete, Image } from '@mui/icons-material'
 import { useT } from '@/lib/i18n/LanguageContext'
+import { LOCALE_TAGS } from '@/lib/i18n/translations'
 import { appUrl } from '@/lib/utils'
 import ImageLightbox from '@/components/ImageLightbox'
 import { resolveCurrentMember } from '@/lib/single-user'
@@ -18,7 +19,7 @@ export default function ExpensesPage() {
   const params = useParams()
   const router = useRouter()
   const { data: session } = useSession()
-  const { t } = useT()
+  const { t, locale } = useT()
   const prefix = params?.prefix as string
   const [travel, setTravel] = useState<any>(null)
   const [expenses, setExpenses] = useState<any[]>([])
@@ -108,7 +109,7 @@ export default function ExpensesPage() {
   function formatDateHeader(date: string): string {
     const d = new Date(date)
     if (isNaN(d.getTime())) return date
-    return d.toLocaleDateString('en-US', {
+    return d.toLocaleDateString(LOCALE_TAGS[locale], {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
     })
   }

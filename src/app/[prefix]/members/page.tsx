@@ -10,6 +10,7 @@ import {
 } from '@mui/material'
 import { Person, ContentCopy, Share, Add, Edit, Delete, GroupWork } from '@mui/icons-material'
 import { useT } from '@/lib/i18n/LanguageContext'
+import { LOCALE_TAGS } from '@/lib/i18n/translations'
 import { appUrl } from '@/lib/utils'
 import { isSingleUserMode } from '@/lib/single-user'
 
@@ -17,7 +18,7 @@ export default function MembersPage() {
   const params = useParams()
   const router = useRouter()
   const { data: session } = useSession()
-  const { t } = useT()
+  const { t, locale } = useT()
   const prefix = params?.prefix as string
   const singleUser = isSingleUserMode()
   const bp = typeof process !== 'undefined' ? process.env.BASE_PATH : ''
@@ -198,7 +199,7 @@ export default function MembersPage() {
                     fetch(appUrl(`/api/travels/${prefix}`)).then(r => r.json()).then(d => {
                       if (d.travel) setTravel(d.travel)
                     })
-                  }} title="Unlink user">
+                  }} title={t('member.unlinkUser')}>
                     <Typography color="error" fontSize="14px">×</Typography>
                   </IconButton>
                 )}
@@ -212,17 +213,17 @@ export default function MembersPage() {
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-              <Typography variant="h6">Invitation Codes</Typography>
+              <Typography variant="h6">{t('member.invitationCodes')}</Typography>
               <Button size="small" color="error" onClick={async () => {
                 await fetch(appUrl(`/api/travels/${prefix}/invites/clean`), { method: 'DELETE' })
                 loadInvites()
               }}>
-                Clean inactive
+                {t('member.cleanInactive')}
               </Button>
             </Box>
             {invites.length === 0 ? (
               <Typography variant="body2" color="text.secondary">
-                No invitation codes created yet.
+                {t('member.noInvites')}
               </Typography>
             ) : (
               invites.map((inv: any) => (
@@ -230,9 +231,9 @@ export default function MembersPage() {
                   <Typography sx={{ fontFamily: 'monospace', fontSize: '1.1rem', letterSpacing: 2, minWidth: 100 }}>
                     {inv.code}
                   </Typography>
-                  <Chip label={inv.multiUse ? 'Multi' : 'Once'} size="small" color={inv.multiUse ? 'info' : 'default'} variant="outlined" />
-                  <Chip label={`${inv.usageCount} used`} size="small" variant="outlined" />
-                  <Chip label={inv.active ? 'Active' : 'Inactive'} size="small" color={inv.active ? 'success' : 'default'} variant="outlined" />
+                  <Chip label={inv.multiUse ? t('member.multi') : t('member.once')} size="small" color={inv.multiUse ? 'info' : 'default'} variant="outlined" />
+                  <Chip label={t('member.used', { n: inv.usageCount })} size="small" variant="outlined" />
+                  <Chip label={inv.active ? t('member.active') : t('member.inactive')} size="small" color={inv.active ? 'success' : 'default'} variant="outlined" />
                   <Switch size="small" checked={inv.active}
                     disabled={!inv.multiUse && inv.usageCount >= 1}
                     onChange={async () => {
@@ -244,7 +245,7 @@ export default function MembersPage() {
                     loadInvites()
                   }} />
                   <Typography variant="caption" color="text.secondary">
-                    Expires: {new Date(inv.expiresAt).toLocaleDateString()}
+                    {t('member.expires')} {new Date(inv.expiresAt).toLocaleDateString(LOCALE_TAGS[locale])}
                   </Typography>
                 </Box>
               ))
@@ -297,10 +298,10 @@ export default function MembersPage() {
         <DialogContent>
           {!inviteCode ? (
             <Box>
-              <Typography gutterBottom>Choose code type:</Typography>
+              <Typography gutterBottom>{t('member.chooseCodeType')}</Typography>
               <FormControlLabel
                 control={<Switch checked={inviteMulti} onChange={e => setInviteMulti(e.target.checked)} />}
-                label="Allow multiple uses (single use by default)"
+                label={t('member.multiUse')}
                 sx={{ mb: 2 }}
               />
               <Button variant="contained" fullWidth onClick={async () => {

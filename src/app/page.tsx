@@ -141,7 +141,7 @@ function HomePage() {
               </IconButton>
               <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
                 <MenuItem onClick={() => { setAnchorEl(null); setKeysOpen(true) }}>
-                  <VpnKey sx={{ mr: 1 }} /> API Keys
+                  <VpnKey sx={{ mr: 1 }} /> {t('apikeys.menu')}
                 </MenuItem>
               </Menu>
             </>
@@ -157,7 +157,7 @@ function HomePage() {
                   <Person sx={{ mr: 1 }} /> {session?.user?.email}
                 </MenuItem>
                 <MenuItem onClick={() => { setAnchorEl(null); setKeysOpen(true) }}>
-                  <VpnKey sx={{ mr: 1 }} /> API Keys
+                  <VpnKey sx={{ mr: 1 }} /> {t('apikeys.menu')}
                 </MenuItem>
                 <Divider />
                 <MenuItem onClick={() => signOut({ callbackUrl: (typeof process !== 'undefined' ? process.env.BASE_PATH : '') || '/' })}>
@@ -347,7 +347,7 @@ function CreateTravelDialog({
           {!isSingleUserMode() && (
             <FormControlLabel
               control={<Switch checked={form.allowMemberCreate} onChange={e => setForm({ ...form, allowMemberCreate: e.target.checked })} />}
-              label="Allow invited users to create their own member entry"
+              label={t('travel.allowMemberCreate')}
             />
           )}
 
